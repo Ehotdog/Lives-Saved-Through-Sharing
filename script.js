@@ -10,12 +10,10 @@ function postStory() {
   post.innerHTML = `
     <h3>${title}</h3>
     <p>${content}</p>
-    <hr>
   `;
 
   document.getElementById("posts").prepend(post);
 
-  // clear inputs
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
 }
