@@ -1,36 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>Anonymous Stories</title>
-
   <link rel="stylesheet" href="style.css">
-
-  <!-- Firebase (REQUIRED) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
-
 <body>
 
-  <div class="container">
-    <h1>Anonymous Stories</h1>
-    <p>Share your experience anonymously</p>
+  <h1>Anonymous Stories</h1>
+  <p>Share your experience anonymously</p>
 
-    <input id="title" placeholder="Title">
-    <br><br>
+  <input id="title" placeholder="Title">
+  <br><br>
 
-    <textarea id="content" placeholder="Write your story..."></textarea>
-    <br><br>
+  <textarea id="content" placeholder="Write your story..."></textarea>
+  <br><br>
 
-    <button onclick="postStory()">Post</button>
+  <button onclick="postStory()">Post</button>
 
-    <hr>
+  <hr>
 
-    <div id="posts"></div>
-  </div>
+  <div id="posts"></div>
 
   <script src="script.js"></script>
-
 </body>
 </html>
