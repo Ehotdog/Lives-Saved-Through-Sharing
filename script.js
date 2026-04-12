@@ -14,6 +14,7 @@ function postStory() {
 
   document.getElementById("posts").prepend(post);
 
+  // clear inputs
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
 }
