@@ -8,20 +8,18 @@
 
 <body>
 
-  <h1>Anonymous Stories</h1>
-  <p>Share your experience anonymously</p>
+  <div class="container">
+    <h1>Anonymous Stories</h1>
+    <p class="subtitle">Share your experiences freely</p>
 
-  <input id="title" placeholder="Title">
-  <br><br>
+    <div class="post-box">
+      <input id="title" placeholder="Title">
+      <textarea id="content" placeholder="Write your story..."></textarea>
+      <button onclick="postStory()">Post</button>
+    </div>
 
-  <textarea id="content" placeholder="Write your story..."></textarea>
-  <br><br>
-
-  <button onclick="postStory()">Post</button>
-
-  <hr>
-
-  <div id="posts"></div>
+    <div id="posts"></div>
+  </div>
 
   <script src="script.js"></script>
 
