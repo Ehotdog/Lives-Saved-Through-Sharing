@@ -7,14 +7,16 @@ function postStory() {
   const post = document.createElement("div");
   post.classList.add("post");
 
+  const username = "User" + Math.floor(Math.random() * 10000);
+
   post.innerHTML = `
     <h3>${title}</h3>
     <p>${content}</p>
+    <small>${username}</small>
   `;
 
   document.getElementById("posts").prepend(post);
 
-  // clear inputs
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
 }
