@@ -4,18 +4,12 @@ function postStory() {
 
   if (!title || !content) return;
 
-  const post = document.createElement("div");
-  post.classList.add("post");
-
-  const username = "User" + Math.floor(Math.random() * 10000);
-
-  post.innerHTML = `
-    <h3>${title}</h3>
-    <p>${content}</p>
-    <small>${username}</small>
-  `;
-
-  document.getElementById("posts").prepend(post);
+  db.collection("posts").add({
+    title: title,
+    content: content,
+    user: "User" + Math.floor(Math.random() * 10000),
+    time: Date.now()
+  });
 
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
