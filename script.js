@@ -1,3 +1,16 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
+  authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
+  projectId: "lives-saved-through-shar-4b7e4",
+  storageBucket: "lives-saved-through-shar-4b7e4.firebasestorage.app",
+  messagingSenderId: "916853783639",
+  appId: "1:916853783639:web:827800545fc482e79b3712"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+
 function postStory() {
   const title = document.getElementById("title").value;
   const content = document.getElementById("content").value;
@@ -15,14 +28,22 @@ function postStory() {
   document.getElementById("content").value = "";
 }
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBb59VjFAhgE2D6zM5O07m32MQR83N16Kk",
-  authDomain: "lives-saved-through-shar-536f8.firebaseapp.com",
-  projectId: "lives-saved-through-shar-536f8",
-  storageBucket: "lives-saved-through-shar-536f8.firebasestorage.app",
-  messagingSenderId: "898935254971",
-  appId: "1:898935254971:web:57d7c4c0819a7aca931e9e"
-};
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+db.collection("posts")
+.orderBy("time", "desc")
+.onSnapshot(snapshot => {
+  const postsDiv = document.getElementById("posts");
+  postsDiv.innerHTML = "";
+
+  snapshot.forEach(doc => {
+    const post = doc.data();
+
+    postsDiv.innerHTML += `
+      <div class="post">
+        <h3>${post.title}</h3>
+        <p>${post.content}</p>
+        <small>${post.user}</small>
+      </div>
+    `;
+  });
+});
