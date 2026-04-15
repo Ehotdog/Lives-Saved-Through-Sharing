@@ -21,11 +21,66 @@ function postStory() {
     title: title,
     content: content,
     user: "User" + Math.floor(Math.random() * 10000),
-    time: Date.now()
+    time: Date.now(),
+    likes: 0
   });
 
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
+}
+
+
+function likePost(id) {
+  const postRef = db.collection("posts").doc(id);
+
+  postRef.get().then(doc => {
+    const currentLikes = doc.data().likes || 0;
+
+    postRef.update({
+      likes: currentLikes + 1
+    });
+  });
+}
+
+
+function addComment(postId) {
+  const input = document.getElementById(`comment-${postId}`);
+  const text = input.value;
+
+  if (!text) return;
+
+  db.collection("posts")
+    .doc(postId)
+    .collection("comments")
+    .add({
+      text: text,
+      user: "User" + Math.floor(Math.random() * 10000),
+      time: Date.now()
+    });
+
+  input.value = "";
+}
+
+
+function loadComments(postId) {
+  db.collection("posts")
+    .doc(postId)
+    .collection("comments")
+    .orderBy("time")
+    .onSnapshot(snapshot => {
+      const div = document.getElementById(`comments-${postId}`);
+      if (!div) return;
+
+      div.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const c = doc.data();
+
+        div.innerHTML += `
+          <p><b>${c.user}:</b> ${c.text}</p>
+        `;
+      });
+    });
 }
 
 
@@ -37,13 +92,29 @@ db.collection("posts")
 
   snapshot.forEach(doc => {
     const post = doc.data();
+    const id = doc.id;
 
     postsDiv.innerHTML += `
       <div class="post">
         <h3>${post.title}</h3>
         <p>${post.content}</p>
         <small>${post.user}</small>
+
+        <br><br>
+
+        <button onclick="likePost('${id}')">
+          ❤️ ${post.likes || 0}
+        </button>
+
+        <div class="comments">
+          <input id="comment-${id}" placeholder="Write a comment...">
+          <button onclick="addComment('${id}')">Comment</button>
+
+          <div id="comments-${id}"></div>
+        </div>
       </div>
     `;
+
+    loadComments(id);
   });
 });
