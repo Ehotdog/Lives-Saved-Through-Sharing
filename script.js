@@ -112,10 +112,32 @@ db.collection("posts")
     const id = doc.id;
 
     postsDiv.innerHTML += `
-      <div class="post">
-        <h3>${post.title}</h3>
-        <p>${post.content}</p>
-        <small>${post.user}</small>
+   <div class="post">
+  <h3>${post.title}</h3>
+  <p>${post.content}</p>
+  <small>${post.user}</small>
+
+  <br><br>
+
+  <button onclick="likePost('${id}')">
+    ❤️ ${post.likes || 0}
+  </button>
+
+  <button onclick="editPost('${id}', \`${post.title}\`, \`${post.content}\`)">
+    ✏️ Edit
+  </button>
+
+  <button onclick="deletePost('${id}')">
+    🗑 Delete
+  </button>
+
+  <div class="comments">
+    <input id="comment-${id}" placeholder="Write a comment...">
+    <button onclick="addComment('${id}')">Comment</button>
+
+    <div id="comments-${id}"></div>
+  </div>
+</div>
 
         <br><br>
 
@@ -135,3 +157,26 @@ db.collection("posts")
     loadComments(id);
   });
 });
+
+
+function deletePost(id) {
+  db.collection("posts").doc(id).delete()
+    .then(() => {
+      console.log("Post deleted");
+    })
+    .catch(err => {
+      console.error(err);
+    });
+}
+
+function editPost(id, oldTitle, oldContent) {
+  const newTitle = prompt("Edit title:", oldTitle);
+  const newContent = prompt("Edit content:", oldContent);
+
+  if (!newTitle || !newContent) return;
+
+  db.collection("posts").doc(id).update({
+    title: newTitle,
+    content: newContent
+  });
+}
