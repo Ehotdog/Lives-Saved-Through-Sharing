@@ -11,14 +11,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 
-let userId = localStorage.getItem("userId");
-
-if (!userId) {
-  userId = "user_" + Math.random().toString(36).substring(2);
-  localStorage.setItem("userId", userId);
-}
-
-
 function postStory() {
   const title = document.getElementById("title").value;
   const content = document.getElementById("content").value;
@@ -45,16 +37,9 @@ function likePost(id) {
   postRef.get().then(doc => {
     const data = doc.data();
     const currentLikes = data.likes || 0;
-    const likedBy = data.likedBy || [];
-
-    if (likedBy.includes(userId)) {
-      alert("You already liked this post");
-      return;
-    }
 
     postRef.update({
-      likes: currentLikes + 1,
-      likedBy: [...likedBy, userId]
+      likes: currentLikes + 1
     });
   });
 }
@@ -101,18 +86,37 @@ function loadComments(postId) {
 }
 
 
-    loadComments(id);
-  });
-});
- 
-
 db.collection("posts")
 .orderBy("time", "desc")
 .onSnapshot(snapshot => {
-  postsDiv.innerHTML += `
-  <div class="post">
-    <h3>${post.title}</h3>
-    <p>${post.content}</p>
-    <small>${post.user}</small>
-  </div>
-`;
+  const postsDiv = document.getElementById("posts");
+  postsDiv.innerHTML = "";
+
+  snapshot.forEach(doc => {
+    const post = doc.data();
+    const id = doc.id;
+
+    postsDiv.innerHTML += `
+      <div class="post">
+        <h3>${post.title}</h3>
+        <p>${post.content}</p>
+        <small>${post.user}</small>
+
+        <br><br>
+
+        <button onclick="likePost('${id}')">
+          ❤️ ${post.likes || 0}
+        </button>
+
+        <div class="comments">
+          <input id="comment-${id}" placeholder="Write a comment...">
+          <button onclick="addComment('${id}')">Comment</button>
+
+          <div id="comments-${id}"></div>
+        </div>
+      </div>
+    `;
+
+    loadComments(id);
+  });
+});
