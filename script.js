@@ -101,6 +101,34 @@ function loadComments(postId) {
 }
 
 
+    loadComments(id);
+  });
+});
+
+
+function deletePost(id) {
+  db.collection("posts").doc(id).delete()
+    .then(() => {
+      console.log("Post deleted");
+    })
+    .catch(err => {
+      console.error(err);
+    });
+}
+
+function editPost(id, oldTitle, oldContent) {
+  const newTitle = prompt("Edit title:", oldTitle);
+  const newContent = prompt("Edit content:", oldContent);
+
+  if (!newTitle || !newContent) return;
+
+  db.collection("posts").doc(id).update({
+    title: newTitle,
+    content: newContent
+  });
+}
+
+
 db.collection("posts")
 .orderBy("time", "desc")
 .onSnapshot(snapshot => {
@@ -153,30 +181,3 @@ db.collection("posts")
         </div>
       </div>
     `;
-
-    loadComments(id);
-  });
-});
-
-
-function deletePost(id) {
-  db.collection("posts").doc(id).delete()
-    .then(() => {
-      console.log("Post deleted");
-    })
-    .catch(err => {
-      console.error(err);
-    });
-}
-
-function editPost(id, oldTitle, oldContent) {
-  const newTitle = prompt("Edit title:", oldTitle);
-  const newContent = prompt("Edit content:", oldContent);
-
-  if (!newTitle || !newContent) return;
-
-  db.collection("posts").doc(id).update({
-    title: newTitle,
-    content: newContent
-  });
-}
