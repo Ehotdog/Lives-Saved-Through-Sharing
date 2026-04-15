@@ -95,3 +95,79 @@ button:hover {
 .post small {
   color: #aaa;
 }
+/* -------------------------
+   POST CARD (clean look)
+--------------------------*/
+.post {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  color: white;
+}
+
+/* Title spacing */
+.post h3 {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+}
+
+/* Content text */
+.post p {
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  opacity: 0.9;
+}
+
+/* User text */
+.post small {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+
+.post button {
+  background: #2a2a2a;
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: 0.2s;
+}
+
+.post button:hover {
+  background: #3a3a3a;
+}
+
+
+.comments {
+  margin-top: 8px;
+}
+
+.comments input {
+  width: 65%;
+  padding: 5px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #333;
+  background: #111;
+  color: white;
+}
+
+.comments button {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+
+
+.comments p {
+  font-size: 12px;
+  margin: 4px 0;
+  opacity: 0.85;
+}
