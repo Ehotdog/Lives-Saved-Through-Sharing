@@ -11,6 +11,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 
+let userId = localStorage.getItem("userId");
+
+if (!userId) {
+  userId = "user_" + Math.random().toString(36).substring(2);
+  localStorage.setItem("userId", userId);
+}
+
+
 function postStory() {
   const title = document.getElementById("title").value;
   const content = document.getElementById("content").value;
@@ -22,7 +30,8 @@ function postStory() {
     content: content,
     user: "User" + Math.floor(Math.random() * 10000),
     time: Date.now(),
-    likes: 0
+    likes: 0,
+    likedBy: []
   });
 
   document.getElementById("title").value = "";
@@ -34,10 +43,18 @@ function likePost(id) {
   const postRef = db.collection("posts").doc(id);
 
   postRef.get().then(doc => {
-    const currentLikes = doc.data().likes || 0;
+    const data = doc.data();
+    const currentLikes = data.likes || 0;
+    const likedBy = data.likedBy || [];
+
+    if (likedBy.includes(userId)) {
+      alert("You already liked this post");
+      return;
+    }
 
     postRef.update({
-      likes: currentLikes + 1
+      likes: currentLikes + 1,
+      likedBy: [...likedBy, userId]
     });
   });
 }
