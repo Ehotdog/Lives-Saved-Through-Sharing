@@ -11,6 +11,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 
+let userId = localStorage.getItem("userId");
+
+if (!userId) {
+  userId = "user_" + Math.random().toString(36).substring(2);
+  localStorage.setItem("userId", userId);
+}
+
+
 function postStory() {
   const title = document.getElementById("title").value;
   const content = document.getElementById("content").value;
@@ -40,7 +48,6 @@ function likePost(postId) {
     const likes = data.likes || 0;
     const likedBy = data.likedBy || [];
 
-    // 🚫 already liked → stop
     if (likedBy.includes(userId)) {
       alert("You already liked this post");
       return;
