@@ -31,15 +31,24 @@ function postStory() {
 }
 
 
-function likePost(id) {
-  const postRef = db.collection("posts").doc(id);
+function likePost(postId) {
+  const postRef = db.collection("posts").doc(postId);
 
   postRef.get().then(doc => {
     const data = doc.data();
-    const currentLikes = data.likes || 0;
+
+    const likes = data.likes || 0;
+    const likedBy = data.likedBy || [];
+
+    // 🚫 already liked → stop
+    if (likedBy.includes(userId)) {
+      alert("You already liked this post");
+      return;
+    }
 
     postRef.update({
-      likes: currentLikes + 1
+      likes: likes + 1,
+      likedBy: [...likedBy, userId]
     });
   });
 }
