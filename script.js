@@ -121,7 +121,7 @@ db.collection("posts")
         <br><br>
 
         <button onclick="likePost('${id}')">
-          ❤️ ${post.likes || 0}
+          🂱 ${post.likes || 0}
         </button>
 
         <div class="comments">
