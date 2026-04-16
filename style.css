@@ -1,173 +1,75 @@
-/* RESET */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
 
-/* BODY */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-  background: linear-gradient(135deg, #1e1e2f, #2a2a40);
-  color: #fff;
-  min-height: 100vh;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #dae0e6; 
+  display: flex;
+  justify-content: center;
 }
 
-/* CONTAINER */
 .container {
-  max-width: 600px;
-  margin: auto;
-  padding: 20px;
-}
-
-/* HEADER */
-h1 {
-  text-align: center;
-  font-size: 32px;
-  margin-bottom: 5px;
-}
-
-.subtitle {
-  text-align: center;
-  color: #aaa;
-  margin-bottom: 20px;
-}
-
-/* POST BOX */
-.post-box {
-  background: rgba(255,255,255,0.05);
-  padding: 15px;
-  border-radius: 15px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-}
-
-/* INPUTS */
-input, textarea {
   width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 8px;
-  border: none;
-  outline: none;
-  font-size: 14px;
-}
-
-/* BUTTON */
-button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 8px;
-  border: none;
-  background: #5865f2;
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-button:hover {
-  background: #4752c4;
-  transform: scale(1.02);
-}
-
-/* POSTS */
-.post {
-  background: rgba(255,255,255,0.07);
-  margin-top: 15px;
+  max-width: 650px;
   padding: 15px;
-  border-radius: 12px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-/* POST TEXT */
-.post h3 {
-  margin-bottom: 5px;
+.create-post {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-bottom: 15px;
 }
 
-.post p {
+.create-post input,
+.create-post textarea {
+  width: 100%;
+  padding: 10px;
   margin-bottom: 8px;
-  color: #ddd;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
-.post small {
-  color: #aaa;
-}
-/* -------------------------
-   POST CARD (clean look)
---------------------------*/
-.post {
-  background: #1e1e1e;
-  border: 1px solid #333;
-  padding: 14px;
-  margin-bottom: 12px;
-  border-radius: 12px;
+.create-post button {
+  width: 100%;
+  padding: 10px;
+  background: #ff4500; 
   color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-/* Title spacing */
+.post {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  padding: 10px;
+}
+
 .post h3 {
-  margin: 0 0 6px 0;
+  margin: 0;
   font-size: 16px;
+  font-weight: bold;
 }
 
-/* Content text */
 .post p {
+  margin: 8px 0;
   font-size: 14px;
-  margin: 0 0 8px 0;
-  opacity: 0.9;
+  line-height: 1.4;
 }
 
-/* User text */
 .post small {
-  font-size: 11px;
-  opacity: 0.6;
+  color: #777;
+  font-size: 12px;
 }
-
 
 .post button {
-  background: #2a2a2a;
-  color: white;
-  border: none;
-  padding: 4px 10px;
-  font-size: 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-right: 6px;
-  transition: 0.2s;
-}
-
-.post button:hover {
-  background: #3a3a3a;
-}
-
-
-.comments {
-  margin-top: 8px;
-}
-
-.comments input {
-  width: 65%;
-  padding: 5px;
-  font-size: 12px;
-  border-radius: 6px;
-  border: 1px solid #333;
-  background: #111;
-  color: white;
-}
-
-.comments button {
-  width: auto;
+  background: #f6f7f8;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   padding: 5px 8px;
-  font-size: 12px;
-  border-radius: 6px;
-}
-
-
-.comments p {
-  font-size: 12px;
-  margin: 4px 0;
-  opacity: 0.85;
-}
+  margin-right: 5px;
+  cursor: pointer;
+  font-size: 13
