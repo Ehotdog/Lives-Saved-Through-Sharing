@@ -1,3 +1,4 @@
+
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -9,6 +10,8 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+console.log("SCRIPT LOADED v1");
 
 
 let userId = localStorage.getItem("userId");
@@ -26,10 +29,10 @@ function postStory() {
   if (!title || !content) return;
 
   db.collection("posts").add({
-    title: title,
-    content: content,
+    title,
+    content,
     user: "User" + Math.floor(Math.random() * 10000),
-    ownerId: userId, // 👈 OWNER TRACKING
+    ownerId: userId,
     time: Date.now(),
     likes: 0,
     likedBy: []
@@ -72,14 +75,13 @@ function addComment(postId) {
     .doc(postId)
     .collection("comments")
     .add({
-      text: text,
+      text,
       user: "User" + Math.floor(Math.random() * 10000),
       time: Date.now()
     });
 
   input.value = "";
 }
-
 
 function loadComments(postId) {
   db.collection("posts")
@@ -94,10 +96,7 @@ function loadComments(postId) {
 
       snapshot.forEach(doc => {
         const c = doc.data();
-
-        div.innerHTML += `
-          <p><b>${c.user}:</b> ${c.text}</p>
-        `;
+        div.innerHTML += `<p><b>${c.user}:</b> ${c.text}</p>`;
       });
     });
 }
@@ -110,12 +109,12 @@ function deletePost(id) {
     const data = doc.data();
 
     if (data.ownerId !== userId) {
-      alert("You can't delete this");
+      alert("Not your post");
       return;
     }
 
-    const confirmDelete = confirm("Delete this post?");
-    if (!confirmDelete) return;
+    const ok = confirm("Delete this post?");
+    if (!ok) return;
 
     postRef.delete();
   });
@@ -129,7 +128,7 @@ function editPost(id, oldTitle, oldContent) {
     const data = doc.data();
 
     if (data.ownerId !== userId) {
-      alert("You can't edit this");
+      alert("Not your post");
       return;
     }
 
@@ -171,13 +170,8 @@ db.collection("posts")
         </button>
 
         ${isOwner ? `
-          <button onclick="editPost('${id}', \`${post.title}\`, \`${post.content}\`)">
-            ✎
-          </button>
-
-          <button onclick="deletePost('${id}')">
-            🗑
-          </button>
+          <button onclick="editPost('${id}', \`${post.title}\`, \`${post.content}\`)">✎</button>
+          <button onclick="deletePost('${id}')">🗑</button>
         ` : ""}
 
         <div class="comments">
