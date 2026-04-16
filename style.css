@@ -1,24 +1,23 @@
-
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #dae0e6; 
+  font-family: system-ui, -apple-system, Arial, sans-serif;
+  background: #f3f4f6;
   display: flex;
   justify-content: center;
 }
 
 .container {
   width: 100%;
-  max-width: 650px;
-  padding: 15px;
+  max-width: 520px;
+  padding: 16px;
 }
 
 .create-post {
   background: white;
+  border-radius: 14px;
   padding: 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
 }
 
 .create-post input,
@@ -26,50 +25,89 @@ body {
   width: 100%;
   padding: 10px;
   margin-bottom: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
 }
 
 .create-post button {
   width: 100%;
   padding: 10px;
-  background: #ff4500; 
-  color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .post {
   background: white;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  margin-bottom: 10px;
-  padding: 10px;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.08);
 }
 
 .post h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .post p {
   margin: 8px 0;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.5;
+  color: #111827;
 }
 
 .post small {
-  color: #777;
+  color: #6b7280;
   font-size: 12px;
 }
 
 .post button {
-  background: #f6f7f8;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 5px 8px;
-  margin-right: 5px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin-right: 6px;
+  font-size: 13px;
   cursor: pointer;
-  font-size: 13
+  transition: 0.2s;
+}
+
+.post button:hover {
+  background: #e5e7eb;
+}
+
+.comments {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+}
+
+.comments input {
+  width: 65%;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+.comments button {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #10b981;
+  color: white;
+  border: none;
+  font-size: 13px;
+}
+
+.comments p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #111827;
+}
