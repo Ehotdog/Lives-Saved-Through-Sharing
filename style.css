@@ -53,6 +53,14 @@ body {
   cursor: pointer;
 }
 
+.post-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
 .post {
   background: white;
   border-radius: 16px;
