@@ -1,4 +1,3 @@
-
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -11,14 +10,20 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-console.log("SCRIPT LOADED v1");
-
+console.log("SCRIPT LOADED");
 
 let userId = localStorage.getItem("userId");
 
 if (!userId) {
-  userId = "user_" + Math.random().toString(36).substring(2);
+  userId = crypto.randomUUID();
   localStorage.setItem("userId", userId);
+}
+
+let displayName = localStorage.getItem("displayName");
+
+if (!displayName) {
+  displayName = "User" + Math.floor(Math.random() * 9999);
+  localStorage.setItem("displayName", displayName);
 }
 
 
@@ -31,7 +36,7 @@ function postStory() {
   db.collection("posts").add({
     title,
     content,
-    user: "User" + Math.floor(Math.random() * 10000),
+    user: displayName,
     ownerId: userId,
     time: Date.now(),
     likes: 0,
@@ -76,7 +81,7 @@ function addComment(postId) {
     .collection("comments")
     .add({
       text,
-      user: "User" + Math.floor(Math.random() * 10000),
+      user: displayName,
       time: Date.now()
     });
 
