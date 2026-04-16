@@ -102,6 +102,28 @@ function loadComments(postId) {
 }
 
 
+function deletePost(id) {
+  const confirmDelete = confirm("Delete this post?");
+  if (!confirmDelete) return;
+
+  db.collection("posts").doc(id).delete()
+    .catch(err => console.error(err));
+}
+
+
+function editPost(id, oldTitle, oldContent) {
+  const newTitle = prompt("Edit title:", oldTitle);
+  const newContent = prompt("Edit content:", oldContent);
+
+  if (!newTitle || !newContent) return;
+
+  db.collection("posts").doc(id).update({
+    title: newTitle,
+    content: newContent
+  });
+}
+
+
 db.collection("posts")
 .orderBy("time", "desc")
 .onSnapshot(snapshot => {
@@ -121,7 +143,15 @@ db.collection("posts")
         <br><br>
 
         <button onclick="likePost('${id}')">
-          🂱 ${post.likes || 0}
+          ♡ ${post.likes || 0}
+        </button>
+
+        <button onclick="editPost('${id}', \`${post.title}\`, \`${post.content}\`)">
+          ✎
+        </button>
+
+        <button onclick="deletePost('${id}')">
+          🗑️
         </button>
 
         <div class="comments">
