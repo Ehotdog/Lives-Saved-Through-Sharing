@@ -29,6 +29,7 @@ function postStory() {
     title: title,
     content: content,
     user: "User" + Math.floor(Math.random() * 10000),
+    ownerId: userId, // 👈 OWNER TRACKING
     time: Date.now(),
     likes: 0,
     likedBy: []
@@ -103,23 +104,44 @@ function loadComments(postId) {
 
 
 function deletePost(id) {
-  const confirmDelete = confirm("Delete this post?");
-  if (!confirmDelete) return;
+  const postRef = db.collection("posts").doc(id);
 
-  db.collection("posts").doc(id).delete()
-    .catch(err => console.error(err));
+  postRef.get().then(doc => {
+    const data = doc.data();
+
+    if (data.ownerId !== userId) {
+      alert("You can't delete this");
+      return;
+    }
+
+    const confirmDelete = confirm("Delete this post?");
+    if (!confirmDelete) return;
+
+    postRef.delete();
+  });
 }
 
 
 function editPost(id, oldTitle, oldContent) {
-  const newTitle = prompt("Edit title:", oldTitle);
-  const newContent = prompt("Edit content:", oldContent);
+  const postRef = db.collection("posts").doc(id);
 
-  if (!newTitle || !newContent) return;
+  postRef.get().then(doc => {
+    const data = doc.data();
 
-  db.collection("posts").doc(id).update({
-    title: newTitle,
-    content: newContent
+    if (data.ownerId !== userId) {
+      alert("You can't edit this");
+      return;
+    }
+
+    const newTitle = prompt("Edit title:", oldTitle);
+    const newContent = prompt("Edit content:", oldContent);
+
+    if (!newTitle || !newContent) return;
+
+    postRef.update({
+      title: newTitle,
+      content: newContent
+    });
   });
 }
 
@@ -134,6 +156,8 @@ db.collection("posts")
     const post = doc.data();
     const id = doc.id;
 
+    const isOwner = post.ownerId === userId;
+
     postsDiv.innerHTML += `
       <div class="post">
         <h3>${post.title}</h3>
@@ -146,13 +170,15 @@ db.collection("posts")
           ♡ ${post.likes || 0}
         </button>
 
-        <button onclick="editPost('${id}', \`${post.title}\`, \`${post.content}\`)">
-          ✎
-        </button>
+        ${isOwner ? `
+          <button onclick="editPost('${id}', \`${post.title}\`, \`${post.content}\`)">
+            ✎
+          </button>
 
-        <button onclick="deletePost('${id}')">
-          🗑️
-        </button>
+          <button onclick="deletePost('${id}')">
+            🗑
+          </button>
+        ` : ""}
 
         <div class="comments">
           <input id="comment-${id}" placeholder="Write a comment...">
