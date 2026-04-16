@@ -12,6 +12,7 @@ body {
   padding: 16px;
 }
 
+
 .create-post {
   background: white;
   border-radius: 14px;
@@ -25,11 +26,7 @@ body {
   width: 100%;
   padding: 10px;
   margin-bottom: 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  outline: none;
-  font-size: 14px;
-}
+  border: 1
 
 .create-post button {
   width: 100%;
