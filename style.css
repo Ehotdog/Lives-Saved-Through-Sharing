@@ -53,20 +53,20 @@ body {
   cursor: pointer;
 }
 
-.post-label {
-  font-size: 20px;
-  font-weight: 800;
-  color: #111827;
-  margin-bottom: 12px;
+.page-header {
+  font-size: 28px;
+  font-weight: 900;
   text-align: center;
-  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+  color: #111827;
+  letter-spacing: 1px;
 }
 
-.post-label::after {
+.page-header::after {
   content: "";
   display: block;
-  width: 60px;
-  height: 3px;
+  width: 80px;
+  height: 4px;
   background: #2563eb;
   margin: 8px auto 0;
   border-radius: 10px;
