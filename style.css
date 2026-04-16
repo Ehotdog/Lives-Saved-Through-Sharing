@@ -54,11 +54,22 @@ body {
 }
 
 .post-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #6b7280;
-  margin-bottom: 8px;
-  text-align: left;
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 12px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.post-label::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: #2563eb;
+  margin: 8px auto 0;
+  border-radius: 10px;
 }
 
 .post {
