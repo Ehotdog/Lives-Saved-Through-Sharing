@@ -3,8 +3,13 @@ body {
   font-family: system-ui, Arial, sans-serif;
   display: flex;
   justify-content: center;
-  background: #f3f4f6;
   min-height: 100vh;
+
+  background: linear-gradient(
+    135deg,
+    #00c9ff,
+    #92fe9d
+  );
 }
 
 .container {
