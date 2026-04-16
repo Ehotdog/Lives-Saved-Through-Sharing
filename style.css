@@ -29,6 +29,7 @@ body {
 .create-post input,
 .create-post textarea {
   width: 100%;
+  box-sizing: border-box; /* 🔥 THIS IS THE KEY FIX */
   padding: 10px;
   margin-bottom: 8px;
   border: 1px solid #e5e7eb;
