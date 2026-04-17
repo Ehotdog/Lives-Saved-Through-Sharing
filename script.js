@@ -10,7 +10,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-console.log("SCRIPT LOADED");
 
 let userId = localStorage.getItem("userId");
 
@@ -38,9 +37,11 @@ function postStory() {
     content,
     user: displayName,
     ownerId: userId,
-    time: Date.now(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     likes: 0,
-    likedBy: []
+    likedBy: [],
+    commentsCount: 0,
+    type: "post"
   });
 
   document.getElementById("title").value = "";
@@ -85,8 +86,14 @@ function addComment(postId) {
       time: Date.now()
     });
 
+  const postRef = db.collection("posts").doc(postId);
+  postRef.update({
+    commentsCount: firebase.firestore.FieldValue.increment(1)
+  });
+
   input.value = "";
 }
+
 
 function loadComments(postId) {
   db.collection("posts")
@@ -101,28 +108,12 @@ function loadComments(postId) {
 
       snapshot.forEach(doc => {
         const c = doc.data();
-        div.innerHTML += `<p><b>${c.user}:</b> ${c.text}</p>`;
+
+        div.innerHTML += `
+          <p><b>${c.user}:</b> ${c.text}</p>
+        `;
       });
     });
-}
-
-
-function deletePost(id) {
-  const postRef = db.collection("posts").doc(id);
-
-  postRef.get().then(doc => {
-    const data = doc.data();
-
-    if (data.ownerId !== userId) {
-      alert("Not your post");
-      return;
-    }
-
-    const ok = confirm("Delete this post?");
-    if (!ok) return;
-
-    postRef.delete();
-  });
 }
 
 
@@ -150,16 +141,47 @@ function editPost(id, oldTitle, oldContent) {
 }
 
 
+function deletePost(id) {
+  const postRef = db.collection("posts").doc(id);
+
+  postRef.get().then(doc => {
+    const data = doc.data();
+
+    if (data.ownerId !== userId) {
+      alert("Not your post");
+      return;
+    }
+
+    if (!confirm("Delete this post?")) return;
+
+    postRef.delete();
+  });
+}
+
+
 db.collection("posts")
-.orderBy("time", "desc")
 .onSnapshot(snapshot => {
   const postsDiv = document.getElementById("posts");
   postsDiv.innerHTML = "";
+
+  let postsArray = [];
 
   snapshot.forEach(doc => {
     const post = doc.data();
     const id = doc.id;
 
+    const score = (post.likes || 0) + (post.commentsCount || 0) * 2;
+
+    postsArray.push({
+      id,
+      ...post,
+      score
+    });
+  });
+
+  postsArray.sort((a, b) => b.score - a.score);
+
+  postsArray.forEach(post => {
     const isOwner = post.ownerId === userId;
 
     postsDiv.innerHTML += `
@@ -170,24 +192,24 @@ db.collection("posts")
 
         <br><br>
 
-        <button onclick="likePost('${id}')">
+        <button onclick="likePost('${post.id}')">
           ♡ ${post.likes || 0}
         </button>
 
         ${isOwner ? `
-          <button onclick="editPost('${id}', \`${post.title}\`, \`${post.content}\`)">✎</button>
-          <button onclick="deletePost('${id}')">🗑</button>
+          <button onclick="editPost('${post.id}', \`${post.title}\`, \`${post.content}\`)">✎</button>
+          <button onclick="deletePost('${post.id}')">🗑</button>
         ` : ""}
 
         <div class="comments">
-          <input id="comment-${id}" placeholder="Write a comment...">
-          <button onclick="addComment('${id}')">Comment</button>
+          <input id="comment-${post.id}" placeholder="Write a comment...">
+          <button onclick="addComment('${post.id}')">Comment</button>
 
-          <div id="comments-${id}"></div>
+          <div id="comments-${post.id}"></div>
         </div>
       </div>
     `;
 
-    loadComments(id);
+    loadComments(post.id);
   });
 });
