@@ -1,6 +1,3 @@
-// -----------------------------
-// FIREBASE SETUP
-// -----------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -14,9 +11,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 
-// -----------------------------
-// 👤 ANONYMOUS USER SYSTEM
-// -----------------------------
 let userId = localStorage.getItem("userId");
 
 if (!userId) {
@@ -32,9 +26,6 @@ if (!displayName) {
 }
 
 
-// -----------------------------
-// 📝 POST STORY
-// -----------------------------
 function postStory() {
   const title = document.getElementById("title").value;
   const content = document.getElementById("content").value;
