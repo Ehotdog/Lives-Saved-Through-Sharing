@@ -1,3 +1,6 @@
+// -----------------------------
+// FIREBASE SETUP
+// -----------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -11,6 +14,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 
+// -----------------------------
+// 👤 ANONYMOUS USER SYSTEM
+// -----------------------------
 let userId = localStorage.getItem("userId");
 
 if (!userId) {
@@ -26,6 +32,9 @@ if (!displayName) {
 }
 
 
+// -----------------------------
+// 📝 POST STORY
+// -----------------------------
 function postStory() {
   const title = document.getElementById("title").value;
   const content = document.getElementById("content").value;
@@ -170,12 +179,26 @@ db.collection("posts")
     const post = doc.data();
     const id = doc.id;
 
-    const score = (post.likes || 0) + (post.commentsCount || 0) * 2;
+    const now = Date.now();
+    const postTime = post.createdAt?.toMillis?.() || now;
+
+    const hoursOld = (now - postTime) / (1000 * 60 * 60);
+    const timeDecay = Math.pow(hoursOld + 2, 1.5);
+
+    let score =
+      ((post.likes || 0) + (post.commentsCount || 0) * 2) / timeDecay;
+
+    if (hoursOld < 2) {
+      score *= 1.5;
+    }
+
+    const isTrending = score > 5;
 
     postsArray.push({
       id,
       ...post,
-      score
+      score,
+      isTrending
     });
   });
 
@@ -186,6 +209,8 @@ db.collection("posts")
 
     postsDiv.innerHTML += `
       <div class="post">
+        ${post.isTrending ? `<div style="color: orange; font-size:12px;">🔥 Trending</div>` : ""}
+
         <h3>${post.title}</h3>
         <p>${post.content}</p>
         <small>${post.user}</small>
