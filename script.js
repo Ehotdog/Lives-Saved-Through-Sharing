@@ -26,11 +26,43 @@ if (!displayName) {
 }
 
 
+let lastPostTime = localStorage.getItem("lastPostTime") || 0;
+let lastCommentTime = localStorage.getItem("lastCommentTime") || 0;
+
+
+function containsBadWords(text) {
+  const banned = ["spam", "badword1", "badword2"];
+  return banned.some(word => text.toLowerCase().includes(word));
+}
+
+
 function postStory() {
-  const title = document.getElementById("title").value;
-  const content = document.getElementById("content").value;
+  const title = document.getElementById("title").value.trim();
+  const content = document.getElementById("content").value.trim();
+
+  const now = Date.now();
+
+  if (now - lastPostTime < 30000) {
+    alert("Wait before posting again");
+    return;
+  }
 
   if (!title || !content) return;
+
+  if (title.length > 80) {
+    alert("Title too long");
+    return;
+  }
+
+  if (content.length > 500) {
+    alert("Story too long");
+    return;
+  }
+
+  if (containsBadWords(title) || containsBadWords(content)) {
+    alert("Inappropriate content");
+    return;
+  }
 
   db.collection("posts").add({
     title,
@@ -44,12 +76,17 @@ function postStory() {
     type: "post"
   });
 
+  lastPostTime = now;
+  localStorage.setItem("lastPostTime", now);
+
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
 }
 
 
 function likePost(postId) {
+  if (!postId) return;
+
   const postRef = db.collection("posts").doc(postId);
 
   postRef.get().then(doc => {
@@ -73,9 +110,26 @@ function likePost(postId) {
 
 function addComment(postId) {
   const input = document.getElementById(`comment-${postId}`);
-  const text = input.value;
+  const text = input.value.trim();
+
+  const now = Date.now();
+
+  if (now - lastCommentTime < 10000) {
+    alert("Slow down commenting");
+    return;
+  }
 
   if (!text) return;
+
+  if (text.length > 200) {
+    alert("Comment too long");
+    return;
+  }
+
+  if (containsBadWords(text)) {
+    alert("Inappropriate comment");
+    return;
+  }
 
   db.collection("posts")
     .doc(postId)
@@ -83,13 +137,15 @@ function addComment(postId) {
     .add({
       text,
       user: displayName,
-      time: Date.now()
+      time: now
     });
 
-  const postRef = db.collection("posts").doc(postId);
-  postRef.update({
+  db.collection("posts").doc(postId).update({
     commentsCount: firebase.firestore.FieldValue.increment(1)
   });
+
+  lastCommentTime = now;
+  localStorage.setItem("lastCommentTime", now);
 
   input.value = "";
 }
@@ -141,6 +197,9 @@ function editPost(id, oldTitle, oldContent) {
 }
 
 
+// -----------------------------
+// 🗑 DELETE POST
+// -----------------------------
 function deletePost(id) {
   const postRef = db.collection("posts").doc(id);
 
@@ -179,6 +238,7 @@ db.collection("posts")
     let score =
       ((post.likes || 0) + (post.commentsCount || 0) * 2) / timeDecay;
 
+    // boost new posts
     if (hoursOld < 2) {
       score *= 1.5;
     }
