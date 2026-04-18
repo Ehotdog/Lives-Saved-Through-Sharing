@@ -26,6 +26,16 @@ if (!displayName) {
 }
 
 
+function showTab(tab) {
+  document.querySelectorAll(".tab").forEach(t => {
+    t.style.display = "none";
+  });
+
+  const el = document.getElementById(tab);
+  if (el) el.style.display = "block";
+}
+
+
 let lastPostTime = localStorage.getItem("lastPostTime") || 0;
 let lastCommentTime = localStorage.getItem("lastCommentTime") || 0;
 
@@ -72,8 +82,7 @@ function postStory() {
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     likes: 0,
     likedBy: [],
-    commentsCount: 0,
-    type: "post"
+    commentsCount: 0
   });
 
   lastPostTime = now;
@@ -81,27 +90,24 @@ function postStory() {
 
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
+
+  showTab("fyp");
 }
 
 
 function likePost(postId) {
-  if (!postId) return;
+  const ref = db.collection("posts").doc(postId);
 
-  const postRef = db.collection("posts").doc(postId);
-
-  postRef.get().then(doc => {
+  ref.get().then(doc => {
     const data = doc.data();
+    if (!data) return;
 
-    const likes = data.likes || 0;
     const likedBy = data.likedBy || [];
 
-    if (likedBy.includes(userId)) {
-      alert("You already liked this post");
-      return;
-    }
+    if (likedBy.includes(userId)) return;
 
-    postRef.update({
-      likes: likes + 1,
+    ref.update({
+      likes: (data.likes || 0) + 1,
       likedBy: [...likedBy, userId]
     });
   });
@@ -131,16 +137,15 @@ function addComment(postId) {
     return;
   }
 
-  db.collection("posts")
-    .doc(postId)
-    .collection("comments")
-    .add({
-      text,
-      user: displayName,
-      time: now
-    });
+  const ref = db.collection("posts").doc(postId);
 
-  db.collection("posts").doc(postId).update({
+  ref.collection("comments").add({
+    text,
+    user: displayName,
+    time: now
+  });
+
+  ref.update({
     commentsCount: firebase.firestore.FieldValue.increment(1)
   });
 
@@ -164,32 +169,25 @@ function loadComments(postId) {
 
       snapshot.forEach(doc => {
         const c = doc.data();
-
-        div.innerHTML += `
-          <p><b>${c.user}:</b> ${c.text}</p>
-        `;
+        div.innerHTML += `<p><b>${c.user}:</b> ${c.text}</p>`;
       });
     });
 }
 
 
 function editPost(id, oldTitle, oldContent) {
-  const postRef = db.collection("posts").doc(id);
+  const ref = db.collection("posts").doc(id);
 
-  postRef.get().then(doc => {
+  ref.get().then(doc => {
     const data = doc.data();
-
-    if (data.ownerId !== userId) {
-      alert("Not your post");
-      return;
-    }
+    if (!data || data.ownerId !== userId) return;
 
     const newTitle = prompt("Edit title:", oldTitle);
     const newContent = prompt("Edit content:", oldContent);
 
     if (!newTitle || !newContent) return;
 
-    postRef.update({
+    ref.update({
       title: newTitle,
       content: newContent
     });
@@ -197,70 +195,58 @@ function editPost(id, oldTitle, oldContent) {
 }
 
 
-// -----------------------------
-// 🗑 DELETE POST
-// -----------------------------
 function deletePost(id) {
-  const postRef = db.collection("posts").doc(id);
+  const ref = db.collection("posts").doc(id);
 
-  postRef.get().then(doc => {
+  ref.get().then(doc => {
     const data = doc.data();
-
-    if (data.ownerId !== userId) {
-      alert("Not your post");
-      return;
-    }
+    if (!data || data.ownerId !== userId) return;
 
     if (!confirm("Delete this post?")) return;
 
-    postRef.delete();
+    ref.delete();
   });
 }
 
 
-db.collection("posts")
-.onSnapshot(snapshot => {
+db.collection("posts").onSnapshot(snapshot => {
   const postsDiv = document.getElementById("posts");
   postsDiv.innerHTML = "";
 
-  let postsArray = [];
+  let posts = [];
+  const now = Date.now();
 
   snapshot.forEach(doc => {
     const post = doc.data();
     const id = doc.id;
 
-    const now = Date.now();
     const postTime = post.createdAt?.toMillis?.() || now;
-
     const hoursOld = (now - postTime) / (1000 * 60 * 60);
+
     const timeDecay = Math.pow(hoursOld + 2, 1.5);
 
     let score =
       ((post.likes || 0) + (post.commentsCount || 0) * 2) / timeDecay;
 
-    // boost new posts
-    if (hoursOld < 2) {
-      score *= 1.5;
-    }
+    if (hoursOld < 2) score *= 1.5;
 
-    const isTrending = score > 5;
-
-    postsArray.push({
+    posts.push({
       id,
       ...post,
       score,
-      isTrending
+      trending: score > 5
     });
   });
 
-  postsArray.sort((a, b) => b.score - a.score);
+  posts.sort((a, b) => b.score - a.score);
 
-  postsArray.forEach(post => {
+  posts.forEach(post => {
     const isOwner = post.ownerId === userId;
 
     postsDiv.innerHTML += `
       <div class="post">
-        ${post.isTrending ? `<div style="color: orange; font-size:12px;">🔥 Trending</div>` : ""}
+
+        ${post.trending ? `<div style="color: orange; font-size:12px;">🔥 Trending</div>` : ""}
 
         <h3>${post.title}</h3>
         <p>${post.content}</p>
@@ -283,6 +269,7 @@ db.collection("posts")
 
           <div id="comments-${post.id}"></div>
         </div>
+
       </div>
     `;
 
