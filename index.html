@@ -1,33 +1,123 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Anonymous Stories</title>
 
-  <link rel="stylesheet" href="style.css?v=1">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #40E0D0, #00bcd4);
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+
+    .create-box {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: none;
+      height: 80px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      background: #00bcd4;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #0097a7;
+    }
+
+    .post {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .post h3 {
+      margin: 0 0 5px;
+    }
+
+    .post small {
+      color: gray;
+    }
+
+    .comments {
+      margin-top: 10px;
+    }
+
+    .comments input {
+      margin-top: 5px;
+    }
+
+    .comments p {
+      margin: 5px 0;
+      font-size: 13px;
+    }
+
+    .trending {
+      color: orange;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+  </style>
 </head>
 
 <body>
 
   <div class="container">
-    
-<div class="page-header">Anonymous Stories</div>
 
-<div class="create-post">
-  <input id="title" placeholder="Write a title..." />
-  <textarea id="content" placeholder="What's your story today?"></textarea>
-  <button onclick="postStory()">Post</button>
-</div>
+    <h1>Anonymous Stories</h1>
+
+    <div class="create-box">
+      <input id="title" placeholder="Title">
+      <textarea id="content" placeholder="Tell your story..."></textarea>
+      <button onclick="postStory()">Post</button>
+    </div>
 
     <div id="posts"></div>
 
   </div>
 
-  <script src="script.js?v=1"></script>
+  <script src="script.js"></script>
 
 </body>
 </html>
