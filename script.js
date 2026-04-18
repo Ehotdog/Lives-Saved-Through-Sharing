@@ -12,6 +12,10 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+firebase.appCheck().activate(
+  "reCAPTCHA v3",
+  true 
+);
 
 
 // -----------------------------
