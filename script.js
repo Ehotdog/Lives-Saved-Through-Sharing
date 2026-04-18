@@ -1,3 +1,6 @@
+// -----------------------------
+// FIREBASE SETUP
+// -----------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -11,6 +14,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 
+// -----------------------------
+// 👤 USER SYSTEM
+// -----------------------------
 let userId = localStorage.getItem("userId");
 
 if (!userId) {
@@ -26,37 +32,38 @@ if (!displayName) {
 }
 
 
-function showTab(tab) {
-  document.querySelectorAll(".tab").forEach(t => {
-    t.style.display = "none";
-  });
-
-  const el = document.getElementById(tab);
-  if (el) el.style.display = "block";
-}
-
-
+// -----------------------------
+// 🛑 ANTI-SPAM TRACKING
+// -----------------------------
 let lastPostTime = localStorage.getItem("lastPostTime") || 0;
 let lastCommentTime = localStorage.getItem("lastCommentTime") || 0;
 
 
+// -----------------------------
+// 🚫 WORD FILTER
+// -----------------------------
 function containsBadWords(text) {
   const banned = ["spam", "badword1", "badword2"];
   return banned.some(word => text.toLowerCase().includes(word));
 }
 
 
+// -----------------------------
+// 📝 POST STORY
+// -----------------------------
 function postStory() {
   const title = document.getElementById("title").value.trim();
   const content = document.getElementById("content").value.trim();
 
   const now = Date.now();
 
+  // rate limit
   if (now - lastPostTime < 30000) {
     alert("Wait before posting again");
     return;
   }
 
+  // validation
   if (!title || !content) return;
 
   if (title.length > 80) {
@@ -82,7 +89,8 @@ function postStory() {
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     likes: 0,
     likedBy: [],
-    commentsCount: 0
+    commentsCount: 0,
+    type: "post"
   });
 
   lastPostTime = now;
@@ -90,36 +98,46 @@ function postStory() {
 
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
-
-  showTab("fyp");
 }
 
 
+// -----------------------------
+// ❤️ LIKE
+// -----------------------------
 function likePost(postId) {
-  const ref = db.collection("posts").doc(postId);
+  if (!postId) return;
 
-  ref.get().then(doc => {
+  const postRef = db.collection("posts").doc(postId);
+
+  postRef.get().then(doc => {
     const data = doc.data();
-    if (!data) return;
 
+    const likes = data.likes || 0;
     const likedBy = data.likedBy || [];
 
-    if (likedBy.includes(userId)) return;
+    if (likedBy.includes(userId)) {
+      alert("You already liked this post");
+      return;
+    }
 
-    ref.update({
-      likes: (data.likes || 0) + 1,
+    postRef.update({
+      likes: likes + 1,
       likedBy: [...likedBy, userId]
     });
   });
 }
 
 
+// -----------------------------
+// 💬 ADD COMMENT
+// -----------------------------
 function addComment(postId) {
   const input = document.getElementById(`comment-${postId}`);
   const text = input.value.trim();
 
   const now = Date.now();
 
+  // rate limit
   if (now - lastCommentTime < 10000) {
     alert("Slow down commenting");
     return;
@@ -137,15 +155,17 @@ function addComment(postId) {
     return;
   }
 
-  const ref = db.collection("posts").doc(postId);
+  db.collection("posts")
+    .doc(postId)
+    .collection("comments")
+    .add({
+      text,
+      user: displayName,
+      time: now
+    });
 
-  ref.collection("comments").add({
-    text,
-    user: displayName,
-    time: now
-  });
-
-  ref.update({
+  // increment comment count
+  db.collection("posts").doc(postId).update({
     commentsCount: firebase.firestore.FieldValue.increment(1)
   });
 
@@ -156,6 +176,9 @@ function addComment(postId) {
 }
 
 
+// -----------------------------
+// 💬 LOAD COMMENTS
+// -----------------------------
 function loadComments(postId) {
   db.collection("posts")
     .doc(postId)
@@ -169,25 +192,35 @@ function loadComments(postId) {
 
       snapshot.forEach(doc => {
         const c = doc.data();
-        div.innerHTML += `<p><b>${c.user}:</b> ${c.text}</p>`;
+
+        div.innerHTML += `
+          <p><b>${c.user}:</b> ${c.text}</p>
+        `;
       });
     });
 }
 
 
+// -----------------------------
+// ✏️ EDIT POST
+// -----------------------------
 function editPost(id, oldTitle, oldContent) {
-  const ref = db.collection("posts").doc(id);
+  const postRef = db.collection("posts").doc(id);
 
-  ref.get().then(doc => {
+  postRef.get().then(doc => {
     const data = doc.data();
-    if (!data || data.ownerId !== userId) return;
+
+    if (data.ownerId !== userId) {
+      alert("Not your post");
+      return;
+    }
 
     const newTitle = prompt("Edit title:", oldTitle);
     const newContent = prompt("Edit content:", oldContent);
 
     if (!newTitle || !newContent) return;
 
-    ref.update({
+    postRef.update({
       title: newTitle,
       content: newContent
     });
@@ -195,58 +228,73 @@ function editPost(id, oldTitle, oldContent) {
 }
 
 
+// -----------------------------
+// 🗑 DELETE POST
+// -----------------------------
 function deletePost(id) {
-  const ref = db.collection("posts").doc(id);
+  const postRef = db.collection("posts").doc(id);
 
-  ref.get().then(doc => {
+  postRef.get().then(doc => {
     const data = doc.data();
-    if (!data || data.ownerId !== userId) return;
+
+    if (data.ownerId !== userId) {
+      alert("Not your post");
+      return;
+    }
 
     if (!confirm("Delete this post?")) return;
 
-    ref.delete();
+    postRef.delete();
   });
 }
 
 
-db.collection("posts").onSnapshot(snapshot => {
+// -----------------------------
+// 🔥 LOAD POSTS (FYP FINAL)
+// -----------------------------
+db.collection("posts")
+.onSnapshot(snapshot => {
   const postsDiv = document.getElementById("posts");
   postsDiv.innerHTML = "";
 
-  let posts = [];
-  const now = Date.now();
+  let postsArray = [];
 
   snapshot.forEach(doc => {
     const post = doc.data();
     const id = doc.id;
 
+    const now = Date.now();
     const postTime = post.createdAt?.toMillis?.() || now;
-    const hoursOld = (now - postTime) / (1000 * 60 * 60);
 
+    const hoursOld = (now - postTime) / (1000 * 60 * 60);
     const timeDecay = Math.pow(hoursOld + 2, 1.5);
 
     let score =
       ((post.likes || 0) + (post.commentsCount || 0) * 2) / timeDecay;
 
-    if (hoursOld < 2) score *= 1.5;
+    // boost new posts
+    if (hoursOld < 2) {
+      score *= 1.5;
+    }
 
-    posts.push({
+    const isTrending = score > 5;
+
+    postsArray.push({
       id,
       ...post,
       score,
-      trending: score > 5
+      isTrending
     });
   });
 
-  posts.sort((a, b) => b.score - a.score);
+  postsArray.sort((a, b) => b.score - a.score);
 
-  posts.forEach(post => {
+  postsArray.forEach(post => {
     const isOwner = post.ownerId === userId;
 
     postsDiv.innerHTML += `
       <div class="post">
-
-        ${post.trending ? `<div style="color: orange; font-size:12px;">🔥 Trending</div>` : ""}
+        ${post.isTrending ? `<div style="color: orange; font-size:12px;">🔥 Trending</div>` : ""}
 
         <h3>${post.title}</h3>
         <p>${post.content}</p>
@@ -269,7 +317,6 @@ db.collection("posts").onSnapshot(snapshot => {
 
           <div id="comments-${post.id}"></div>
         </div>
-
       </div>
     `;
 
