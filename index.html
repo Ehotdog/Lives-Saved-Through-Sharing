@@ -7,7 +7,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-  <!-- Magical Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@600&display=swap" rel="stylesheet">
 
   <style>
@@ -23,7 +22,6 @@
       padding: 20px;
     }
 
-    /* ✨ MAGICAL TITLE */
     h1 {
       text-align: center;
       color: white;
@@ -46,7 +44,6 @@
       100% { text-shadow: 0 0 10px rgba(255,255,255,0.6); }
     }
 
-    /* CREATE BOX */
     .create-box {
       background: white;
       padding: 15px;
@@ -85,7 +82,6 @@
       background: #0097a7;
     }
 
-    /* POSTS */
     .post {
       background: white;
       padding: 15px;
@@ -119,19 +115,16 @@
 
     <h1>Anonymous Stories</h1>
 
-    <!-- CREATE POST -->
     <div class="create-box">
       <input id="title" placeholder="Title">
       <textarea id="content" placeholder="Tell your story..."></textarea>
       <button onclick="postStory()">Post</button>
     </div>
 
-    <!-- POSTS -->
     <div id="posts"></div>
 
   </div>
 
-  <!-- YOUR LOGIC FILE -->
   <script src="script.js"></script>
 
 </body>
