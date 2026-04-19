@@ -1,6 +1,3 @@
-// -----------------------------
-// FIREBASE SETUP
-// -----------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -19,9 +16,6 @@ firebase.appCheck().activate(
 );
 
 
-// -----------------------------
-// 👤 USER SYSTEM
-// -----------------------------
 let userId = localStorage.getItem("userId");
 
 if (!userId) {
@@ -37,38 +31,27 @@ if (!displayName) {
 }
 
 
-// -----------------------------
-// 🛑 ANTI-SPAM TRACKING
-// -----------------------------
 let lastPostTime = localStorage.getItem("lastPostTime") || 0;
 let lastCommentTime = localStorage.getItem("lastCommentTime") || 0;
 
 
-// -----------------------------
-// 🚫 WORD FILTER
-// -----------------------------
 function containsBadWords(text) {
   const banned = ["spam", "badword1", "badword2"];
   return banned.some(word => text.toLowerCase().includes(word));
 }
 
 
-// -----------------------------
-// 📝 POST STORY
-// -----------------------------
 function postStory() {
   const title = document.getElementById("title").value.trim();
   const content = document.getElementById("content").value.trim();
 
   const now = Date.now();
 
-  // rate limit
   if (now - lastPostTime < 30000) {
     alert("Wait before posting again");
     return;
   }
 
-  // validation
   if (!title || !content) return;
 
   if (title.length > 80) {
@@ -106,9 +89,6 @@ function postStory() {
 }
 
 
-// -----------------------------
-// ❤️ LIKE
-// -----------------------------
 function likePost(postId) {
   if (!postId) return;
 
@@ -133,16 +113,12 @@ function likePost(postId) {
 }
 
 
-// -----------------------------
-// 💬 ADD COMMENT
-// -----------------------------
 function addComment(postId) {
   const input = document.getElementById(`comment-${postId}`);
   const text = input.value.trim();
 
   const now = Date.now();
 
-  // rate limit
   if (now - lastCommentTime < 10000) {
     alert("Slow down commenting");
     return;
@@ -169,7 +145,6 @@ function addComment(postId) {
       time: now
     });
 
-  // increment comment count
   db.collection("posts").doc(postId).update({
     commentsCount: firebase.firestore.FieldValue.increment(1)
   });
@@ -181,9 +156,6 @@ function addComment(postId) {
 }
 
 
-// -----------------------------
-// 💬 LOAD COMMENTS
-// -----------------------------
 function loadComments(postId) {
   db.collection("posts")
     .doc(postId)
@@ -206,9 +178,6 @@ function loadComments(postId) {
 }
 
 
-// -----------------------------
-// ✏️ EDIT POST
-// -----------------------------
 function editPost(id, oldTitle, oldContent) {
   const postRef = db.collection("posts").doc(id);
 
@@ -233,9 +202,6 @@ function editPost(id, oldTitle, oldContent) {
 }
 
 
-// -----------------------------
-// 🗑 DELETE POST
-// -----------------------------
 function deletePost(id) {
   const postRef = db.collection("posts").doc(id);
 
@@ -254,9 +220,6 @@ function deletePost(id) {
 }
 
 
-// -----------------------------
-// 🔥 LOAD POSTS (FYP FINAL)
-// -----------------------------
 db.collection("posts")
 .onSnapshot(snapshot => {
   const postsDiv = document.getElementById("posts");
@@ -277,7 +240,6 @@ db.collection("posts")
     let score =
       ((post.likes || 0) + (post.commentsCount || 0) * 2) / timeDecay;
 
-    // boost new posts
     if (hoursOld < 2) {
       score *= 1.5;
     }
