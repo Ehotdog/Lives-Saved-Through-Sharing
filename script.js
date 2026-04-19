@@ -15,9 +15,7 @@ firebase.appCheck().activate(
   true
 );
 
-// -----------------------------
-// USER SETUP
-// -----------------------------
+// ---------------- USER ----------------
 let userId = localStorage.getItem("userId");
 if (!userId) {
   userId = crypto.randomUUID();
@@ -33,17 +31,13 @@ if (!displayName) {
 let lastPostTime = localStorage.getItem("lastPostTime") || 0;
 let lastCommentTime = localStorage.getItem("lastCommentTime") || 0;
 
-// -----------------------------
-// BASIC FILTER
-// -----------------------------
+// ---------------- FILTER ----------------
 function containsBadWords(text) {
   const banned = ["spam", "badword1", "badword2"];
-  return banned.some(word => text.toLowerCase().includes(word));
+  return banned.some(w => text.toLowerCase().includes(w));
 }
 
-// -----------------------------
-// POST STORY
-// -----------------------------
+// ---------------- POST ----------------
 function postStory() {
   const title = document.getElementById("title").value.trim();
   const content = document.getElementById("content").value.trim();
@@ -74,39 +68,35 @@ function postStory() {
   document.getElementById("content").value = "";
 }
 
-// -----------------------------
-// LIKE POST
-// -----------------------------
+// ---------------- LIKE ----------------
 function likePost(postId) {
-  const postRef = db.collection("posts").doc(postId);
+  const ref = db.collection("posts").doc(postId);
 
-  postRef.get().then(doc => {
+  ref.get().then(doc => {
     const data = doc.data();
 
     if ((data.likedBy || []).includes(userId)) {
       return alert("Already liked");
     }
 
-    postRef.update({
+    ref.update({
       likes: (data.likes || 0) + 1,
       likedBy: [...(data.likedBy || []), userId]
     });
   });
 }
 
-// -----------------------------
-// COMMENTS
-// -----------------------------
+// ---------------- COMMENT ----------------
 function addComment(postId) {
   const input = document.getElementById(`comment-${postId}`);
   const text = input.value.trim();
 
   const now = Date.now();
 
-  if (now - lastCommentTime < 10000) return alert("Slow down commenting");
+  if (now - lastCommentTime < 10000) return alert("Slow down");
   if (!text) return;
-  if (text.length > 200) return alert("Comment too long");
-  if (containsBadWords(text)) return alert("Inappropriate comment");
+  if (text.length > 200) return alert("Too long");
+  if (containsBadWords(text)) return alert("Blocked");
 
   db.collection("posts").doc(postId).collection("comments").add({
     text,
@@ -124,9 +114,7 @@ function addComment(postId) {
   input.value = "";
 }
 
-// -----------------------------
-// LOAD COMMENTS
-// -----------------------------
+// ---------------- COMMENTS LOAD ----------------
 function loadComments(postId) {
   db.collection("posts")
     .doc(postId)
@@ -136,22 +124,22 @@ function loadComments(postId) {
       const div = document.getElementById(`comments-${postId}`);
       if (!div) return;
 
-      div.innerHTML = "";
+      let html = "";
 
       snapshot.forEach(doc => {
         const c = doc.data();
-        div.innerHTML += `<p><b>${c.user}:</b> ${c.text}</p>`;
+        html += `<p><b>${c.user}:</b> ${c.text}</p>`;
       });
+
+      div.innerHTML = html;
     });
 }
 
-// -----------------------------
-// EDIT POST
-// -----------------------------
+// ---------------- EDIT ----------------
 function editPost(id, oldTitle, oldContent) {
-  const postRef = db.collection("posts").doc(id);
+  const ref = db.collection("posts").doc(id);
 
-  postRef.get().then(doc => {
+  ref.get().then(doc => {
     const data = doc.data();
     if (data.ownerId !== userId) return alert("Not your post");
 
@@ -160,87 +148,87 @@ function editPost(id, oldTitle, oldContent) {
 
     if (!newTitle || !newContent) return;
 
-    postRef.update({
+    ref.update({
       title: newTitle,
       content: newContent
     });
   });
 }
 
-// -----------------------------
-// DELETE POST
-// -----------------------------
+// ---------------- DELETE ----------------
 function deletePost(id) {
-  const postRef = db.collection("posts").doc(id);
+  const ref = db.collection("posts").doc(id);
 
-  postRef.get().then(doc => {
+  ref.get().then(doc => {
     const data = doc.data();
     if (data.ownerId !== userId) return alert("Not your post");
 
-    if (!confirm("Delete this post?")) return;
+    if (!confirm("Delete?")) return;
 
-    postRef.delete();
+    ref.delete();
   });
 }
 
-// -----------------------------
-// REALTIME FEED (FIXED VERSION)
-// -----------------------------
+// ---------------- SAFE FEED ----------------
 function loadPosts() {
+  const postsDiv = document.getElementById("posts");
+
+  if (!postsDiv) {
+    console.log("Missing #posts div");
+    return;
+  }
+
   db.collection("posts")
+    .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
-      console.log("Snapshot fired");
 
-      const postsDiv = document.getElementById("posts");
-      if (!postsDiv) return;
+      console.log("Snapshot fired:", snapshot.size);
 
-      postsDiv.innerHTML = "";
-
-      let posts = [];
+      let html = "";
 
       snapshot.forEach(doc => {
-        posts.push({ id: doc.id, ...doc.data() });
-      });
+        const p = doc.data();
+        const id = doc.id;
+        const isOwner = p.ownerId === userId;
 
-      posts.reverse();
-
-      posts.forEach(post => {
-        const isOwner = post.ownerId === userId;
-
-        postsDiv.innerHTML += `
+        html += `
           <div class="post">
-            <h3>${post.title}</h3>
-            <p>${post.content}</p>
-            <small>${post.user}</small>
+            <h3>${p.title || ""}</h3>
+            <p>${p.content || ""}</p>
+            <small>${p.user || "Unknown"}</small>
 
             <br><br>
 
-            <button onclick="likePost('${post.id}')">
-              ♡ ${post.likes || 0}
+            <button onclick="likePost('${id}')">
+              ♡ ${p.likes || 0}
             </button>
 
             ${isOwner ? `
-              <button onclick="editPost('${post.id}', \`${post.title}\`, \`${post.content}\`)">✎</button>
-              <button onclick="deletePost('${post.id}')">🗑</button>
+              <button onclick="editPost('${id}', \`${p.title}\`, \`${p.content}\`)">✎</button>
+              <button onclick="deletePost('${id}')">🗑</button>
             ` : ""}
 
             <div class="comments">
-              <input id="comment-${post.id}" placeholder="Write a comment...">
-              <button onclick="addComment('${post.id}')">Comment</button>
+              <input id="comment-${id}" placeholder="Write a comment...">
+              <button onclick="addComment('${id}')">Comment</button>
 
-              <div id="comments-${post.id}"></div>
+              <div id="comments-${id}"></div>
             </div>
           </div>
         `;
-
-        loadComments(post.id);
       });
+
+      postsDiv.innerHTML = html;
+
+      // attach comments AFTER render
+      snapshot.forEach(doc => {
+        loadComments(doc.id);
+      });
+
     }, err => {
-      console.log("Snapshot error:", err);
+      console.log("Feed error:", err);
     });
 }
 
-// -----------------------------
-// START APP
-// -----------------------------
+// ---------------- START ----------------
 loadPosts();
