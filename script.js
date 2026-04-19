@@ -10,15 +10,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-
-db.collection("posts").get()
-  .then(snap => {
-    console.log("GET test size:", snap.size);
-  })
-  .catch(err => {
-    console.log("GET ERROR:", err);
-  });
-
 firebase.appCheck().activate(
   "6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i",
   true
@@ -229,8 +220,23 @@ function deletePost(id) {
 }
 
 
-db.collection("posts")
-.onSnapshot(snapshot => {
+db.collection("posts").get().then(snapshot => {
+  console.log("MANUAL LOAD WORKING:", snapshot.size);
+
+  const postsDiv = document.getElementById("posts");
+  postsDiv.innerHTML = "";
+
+  snapshot.forEach(doc => {
+    const post = doc.data();
+    postsDiv.innerHTML += `
+      <div class="post">
+        <h3>${post.title}</h3>
+        <p>${post.content}</p>
+        <small>${post.user}</small>
+      </div>
+    `;
+  });
+});
  
   
   const postsDiv = document.getElementById("posts");
