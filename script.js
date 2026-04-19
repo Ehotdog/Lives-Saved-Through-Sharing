@@ -12,9 +12,10 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
 firebase.appCheck().activate(
   "6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i",
-  true 
+  true
 );
 
 
