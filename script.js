@@ -13,7 +13,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 firebase.appCheck().activate(
-  "reCAPTCHA v3",
+  "6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i",
   true 
 );
 
