@@ -222,6 +222,8 @@ function deletePost(id) {
 
 db.collection("posts")
 .onSnapshot(snapshot => {
+  console.log("Snapshot fired");
+  
   const postsDiv = document.getElementById("posts");
   postsDiv.innerHTML = "";
 
