@@ -1,3 +1,4 @@
+console.log("SCRIPT LOADED");
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
