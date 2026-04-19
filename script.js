@@ -1,4 +1,3 @@
-console.log("SCRIPT LOADED");
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -10,6 +9,15 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+
+db.collection("posts").get()
+  .then(snap => {
+    console.log("GET test size:", snap.size);
+  })
+  .catch(err => {
+    console.log("GET ERROR:", err);
+  });
 
 firebase.appCheck().activate(
   "6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i",
@@ -223,7 +231,7 @@ function deletePost(id) {
 
 db.collection("posts")
 .onSnapshot(snapshot => {
-  console.log("Snapshot fired");
+ 
   
   const postsDiv = document.getElementById("posts");
   postsDiv.innerHTML = "";
