@@ -15,7 +15,6 @@ firebase.appCheck().activate(
   true
 );
 
-// ===================== USER SYSTEM =====================
 let userId = localStorage.getItem("userId");
 if (!userId) {
   userId = crypto.randomUUID();
@@ -31,13 +30,11 @@ if (!displayName) {
 let lastPostTime = localStorage.getItem("lastPostTime") || 0;
 let lastCommentTime = localStorage.getItem("lastCommentTime") || 0;
 
-// ===================== BASIC FILTER =====================
 function containsBadWords(text) {
   const banned = ["spam", "badword1", "badword2"];
   return banned.some(w => text.toLowerCase().includes(w));
 }
 
-// ===================== CREATE POST =====================
 function postStory() {
   const title = document.getElementById("title").value.trim();
   const content = document.getElementById("content").value.trim();
@@ -72,7 +69,6 @@ function postStory() {
   document.getElementById("content").value = "";
 }
 
-// ===================== LIKE =====================
 function likePost(postId) {
   const ref = db.collection("posts").doc(postId);
 
@@ -91,7 +87,6 @@ function likePost(postId) {
   });
 }
 
-// ===================== COMMENT =====================
 function addComment(postId) {
   const input = document.getElementById(`comment-${postId}`);
   const text = input.value.trim();
@@ -123,7 +118,6 @@ function addComment(postId) {
   input.value = "";
 }
 
-// ===================== LOAD COMMENTS =====================
 function loadComments(postId) {
   db.collection("posts")
     .doc(postId)
@@ -144,7 +138,6 @@ function loadComments(postId) {
     });
 }
 
-// ===================== EDIT POST =====================
 function editPost(id, oldTitle, oldContent) {
   const ref = db.collection("posts").doc(id);
 
@@ -168,7 +161,6 @@ function editPost(id, oldTitle, oldContent) {
   });
 }
 
-// ===================== DELETE POST =====================
 function deletePost(id) {
   const ref = db.collection("posts").doc(id);
 
@@ -186,7 +178,6 @@ function deletePost(id) {
   });
 }
 
-// ===================== FYP FEED (ALGORITHM) =====================
 function loadPosts() {
   const postsDiv = document.getElementById("posts");
 
@@ -251,5 +242,4 @@ function loadPosts() {
     });
 }
 
-// ===================== START =====================
 loadPosts();
