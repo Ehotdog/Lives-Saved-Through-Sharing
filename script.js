@@ -16,7 +16,7 @@ if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
 
 // Fix 2: Activate App Check BEFORE calling onTokenChanged
 const appCheck = firebase.appCheck();
-appCheck.activate("6Lfkt78sAAAAALVZJ03A1YjSv5pGC2VN_sfv8YJM", true);
+appCheck.activate("6LeoVcAsAAAAAIsfworZgJ-IvaKU_hSMe-OMGT2Z", true);
 
 let db;
 
