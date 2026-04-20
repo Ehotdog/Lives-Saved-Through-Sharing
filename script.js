@@ -10,15 +10,15 @@ const firebaseConfig = {
 // 1. Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-// 2. Setup Debug Token BEFORE activating App Check
+// Add this at the VERY top of your script
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-  // Use a string here if you want to hardcode your debug token from the console
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; 
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  console.log("Debug mode enabled. Checking for token...");
 }
 
-// 3. Activate App Check
+// ... your firebase.initializeApp(firebaseConfig) ...
+
 const appCheck = firebase.appCheck();
-// This uses the v3 Site Key you provided
 appCheck.activate("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9", true);
 
 let db = firebase.firestore(); // Initialize DB immediately
