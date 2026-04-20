@@ -39,9 +39,13 @@ function startApp() {
   window.appStarted = true;
   db = firebase.firestore();
 
-  // Re-enable the post button once ready
-  const postBtn = document.querySelector("button[onclick='postStory()']");
-  if (postBtn) postBtn.disabled = false;
+  // Hide loading message and enable post button
+  const msg = document.getElementById("loading-msg");
+  if (msg) msg.style.opacity = "0";
+  setTimeout(() => { if (msg) msg.remove(); }, 500);
+
+  const btn = document.getElementById("post-btn");
+  if (btn) btn.disabled = false;
 
   loadPosts();
 }
