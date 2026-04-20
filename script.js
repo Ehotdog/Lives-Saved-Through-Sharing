@@ -12,7 +12,7 @@ firebase.initializeApp(firebaseConfig);
 
 // Add this at the VERY top of your script
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = F8F66070-50E0-44F9-AC6C-AE080833AC6D;
   console.log("Debug mode enabled. Checking for token...");
 }
 
