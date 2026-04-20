@@ -10,33 +10,25 @@ const firebaseConfig = {
 // 1. Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Add this at the VERY top of your script
+// 2. Setup Debug Token for Localhost
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = "AB10579B-5FC7-429F-A915-511B13E83A31";
-  console.log("Debug mode enabled. Checking for token...");
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; 
 }
 
-// ... your firebase.initializeApp(firebaseConfig) ...
-
+// 3. Activate App Check
 const appCheck = firebase.appCheck();
 appCheck.activate("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9", true);
 
-let db = firebase.firestore(); // Initialize DB immediately
+// 4. Force Firestore to wait for the token
+const db = firebase.firestore();
 
-// 4. Single-run initialization check
-let appInitialized = false;
-
+// Use getToken() to ensure we are verified BEFORE calling loadPosts
 firebase.appCheck().getToken().then(() => {
-    console.log("App Check verified successfully");
-    if (!appInitialized) {
-        startApp();
-        appInitialized = true;
-    }
-}).catch((err) => {
-    console.error("App Check failed to verify:", err);
-    // Even if it fails, we start the app so the user sees a message 
-    // rather than a white screen, but saving will be blocked if Enforced.
-    startApp(); 
+    console.log("App Check verified successfully.");
+    startApp();
+}).catch(err => {
+    console.error("App Check failed. Firestore will likely block requests.", err);
+    startApp(); // Still start so the UI loads
 });
 
 function startApp() {
