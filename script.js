@@ -37,8 +37,12 @@ firebase.appCheck().onTokenChanged(
 function startApp() {
   if (window.appStarted) return;
   window.appStarted = true;
-  console.log("Starting app with valid token");
   db = firebase.firestore();
+
+  // Re-enable the post button once ready
+  const postBtn = document.querySelector("button[onclick='postStory()']");
+  if (postBtn) postBtn.disabled = false;
+
   loadPosts();
 }
 
@@ -65,9 +69,10 @@ function containsBadWords(text) {
 
 // ================= POST =================
 function postStory() {
+  if (!db) return alert("Still loading, please wait a moment and try again.");
+  
   const title = document.getElementById("title").value.trim();
   const content = document.getElementById("content").value.trim();
-
   const now = Date.now();
 
   if (now - lastPostTime < 30000) return alert("Wait before posting again");
@@ -89,9 +94,18 @@ function postStory() {
 
   lastPostTime = now;
   localStorage.setItem("lastPostTime", now);
-
   document.getElementById("title").value = "";
   document.getElementById("content").value = "";
+}
+
+function likePost(postId) {
+  if (!db) return alert("Still loading, please try again.");
+  // ... rest unchanged
+}
+
+function addComment(postId) {
+  if (!db) return alert("Still loading, please try again.");
+  // ... rest unchanged
 }
 
 // ================= LIKE =================
