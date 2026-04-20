@@ -232,9 +232,10 @@ function loadPosts() {
 
       const div = document.createElement("div");
       div.className = "post";
-      div.innerHTML = `
-        <h3>${sanitize(post.title)}</h3>
-        <p>${sanitize(post.content)}</p>
+     div.innerHTML = `
+  <h3>${sanitize(post.title)}</h3>
+  <p>${sanitize(post.content)}</p>
+`;
         <small>${sanitize(post.user || "Unknown")}</small>
         <br><br>
         <button onclick="likePost('${post.id}')">♡ ${post.likes || 0}</button>
