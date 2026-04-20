@@ -8,12 +8,25 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-firebase.appCheck().activate(
+let db;
+
+const appCheck = firebase.appCheck();
+appCheck.activate(
   "6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i",
   true
 );
+
+// ⏳ WAIT FOR TOKEN
+setTimeout(startApp, 1500);
+
+function startApp() {
+  console.log("App Check ready");
+
+  db = firebase.firestore();
+
+  loadPosts();
+}
 
 let userId = localStorage.getItem("userId");
 if (!userId) {
@@ -41,15 +54,11 @@ function postStory() {
 
   const now = Date.now();
 
-  if (now - lastPostTime < 30000) {
-    alert("Wait before posting again");
-    return;
-  }
-
+  if (now - lastPostTime < 30000) return alert("Wait before posting again");
   if (!title || !content) return;
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Story too long");
-  if (containsBadWords(title) || containsBadWords(content)) return alert("Inappropriate content");
+  if (containsBadWords(title) || containsBadWords(content)) return alert("Blocked");
 
   db.collection("posts").add({
     title,
@@ -93,11 +102,7 @@ function addComment(postId) {
 
   const now = Date.now();
 
-  if (now - lastCommentTime < 10000) {
-    alert("Slow down");
-    return;
-  }
-
+  if (now - lastCommentTime < 10000) return alert("Slow down");
   if (!text) return;
   if (text.length > 200) return alert("Too long");
   if (containsBadWords(text)) return alert("Blocked");
@@ -143,11 +148,7 @@ function editPost(id, oldTitle, oldContent) {
 
   ref.get().then(doc => {
     const data = doc.data();
-
-    if (data.ownerId !== userId) {
-      alert("Not your post");
-      return;
-    }
+    if (data.ownerId !== userId) return alert("Not your post");
 
     const newTitle = prompt("Edit title:", oldTitle);
     const newContent = prompt("Edit content:", oldContent);
@@ -166,23 +167,21 @@ function deletePost(id) {
 
   ref.get().then(doc => {
     const data = doc.data();
+    if (data.ownerId !== userId) return alert("Not your post");
 
-    if (data.ownerId !== userId) {
-      alert("Not your post");
-      return;
-    }
-
-    if (!confirm("Delete this post?")) return;
+    if (!confirm("Delete?")) return;
 
     ref.delete();
   });
 }
 
 function loadPosts() {
-  const postsDiv = document.getElementById("posts");
-
   db.collection("posts")
     .onSnapshot(snapshot => {
+
+      console.log("Snapshot fired");
+
+      const postsDiv = document.getElementById("posts");
 
       const now = Date.now();
       let posts = [];
@@ -228,7 +227,6 @@ function loadPosts() {
             <div class="comments">
               <input id="comment-${post.id}" placeholder="Write a comment...">
               <button onclick="addComment('${post.id}')">Comment</button>
-
               <div id="comments-${post.id}"></div>
             </div>
           </div>
@@ -241,5 +239,3 @@ function loadPosts() {
       console.log("Snapshot error:", err);
     });
 }
-
-loadPosts();
