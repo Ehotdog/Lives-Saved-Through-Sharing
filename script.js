@@ -7,6 +7,7 @@ const firebaseConfig = {
   appId: "1:916853783639:web:d6ef4757f560a61e9b3712"
 };
 
+
 firebase.initializeApp(firebaseConfig);
 
 // Fix 1: Debug token for localhost so App Check doesn't fail during development
