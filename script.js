@@ -252,8 +252,4 @@ function loadPosts() {
       postsDiv.appendChild(div);
       loadComments(post.id);
     });
-
-  }, err => {
-    console.error("Snapshot error:", err);
-  });
 }
