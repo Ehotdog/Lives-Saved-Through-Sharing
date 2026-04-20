@@ -218,11 +218,8 @@ function deletePost(id) {
 function loadPosts() {
   db.collection("posts")
     .onSnapshot(snapshot => {
-
       console.log("Snapshot fired");
-
       const postsDiv = document.getElementById("posts");
-
       const now = Date.now();
       let posts = [];
 
@@ -233,13 +230,18 @@ function loadPosts() {
         const time = p.createdAt?.toMillis?.() || now;
         const hoursOld = (now - time) / (1000 * 60 * 60);
 
-        const score =
-          ((p.likes || 0) + (p.commentsCount || 0) * 2)
-          / Math.pow(hoursOld + 2, 1.3);
+        const likes = p.likes || 0;
+        const comments = p.commentsCount || 0;
+
+        const engagement = (likes * 1.0) + (comments * 1.5);
+        const decay = Math.pow(hoursOld + 2, 1.5);
+        const boost = hoursOld < 1 ? 2.0 : 1.0;
+        const score = (engagement / decay) * boost;
 
         posts.push({ id, ...p, score });
       });
 
+    
       posts.sort((a, b) => b.score - a.score);
 
       postsDiv.innerHTML = "";
