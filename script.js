@@ -244,4 +244,4 @@ function loadPosts() {
       postsDiv.appendChild(div);
       loadComments(post.id);
     });
-}
+)}
