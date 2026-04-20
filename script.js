@@ -12,9 +12,10 @@ firebase.initializeApp(firebaseConfig);
 let db;
 
 const appCheck = firebase.appCheck();
-appCheck.activate("6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i", true);
+appCheck.activate(
+  "6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i",
   true
-;
+);
 
 firebase.appCheck().onTokenChanged((token) => {
   console.log("App Check token ready");
