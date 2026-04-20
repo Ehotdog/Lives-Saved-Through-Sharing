@@ -1,130 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Anonymous Stories</title>
-  <link rel="icon" href="data:,"> <!-- Fix 1: prevents favicon 404 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app-check.js"></script>
-  <!-- Fix 2: reCAPTCHA v3 must be loaded here, before your script -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9"></script>
+  <link rel="icon" href="data:,"> 
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app-check.js"></script>
+
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@600&display=swap" rel="stylesheet">
+  
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #40E0D0, #00bcd4);
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: white;
-      font-size: 46px;
-      margin-bottom: 25px;
-      font-family: 'Great Vibes', cursive;
-      text-shadow:
-        0 0 10px rgba(255,255,255,0.9),
-        0 0 20px rgba(0,255,255,0.6),
-        0 0 30px rgba(0,200,255,0.4);
-      animation: glow 3s infinite ease-in-out;
-    }
-    @keyframes glow {
-      0% { text-shadow: 0 0 10px rgba(255,255,255,0.6); }
-      50% { text-shadow: 0 0 25px rgba(0,255,255,0.8); }
-      100% { text-shadow: 0 0 10px rgba(255,255,255,0.6); }
-    }
-    .create-box {
-      background: white;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    input, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      box-sizing: border-box;
-    }
-    textarea {
-      resize: none;
-      height: 80px;
-    }
-    button {
-      margin-top: 10px;
-      padding: 10px 14px;
-      border: none;
-      border-radius: 8px;
-      background: #00bcd4;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    button:hover {
-      background: #0097a7;
-    }
-
-    /* Fix 3: style for disabled post button */
-    button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-
-    .post {
-      background: white;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .post h3 {
-      margin: 0 0 5px;
-    }
-    .post small {
-      color: gray;
-    }
-    .comments {
-      margin-top: 10px;
-    }
-    .comments p {
-      margin: 5px 0;
-      font-size: 13px;
-    }
-
-    /* Fix 4: loading indicator style */
-    #loading-msg {
-      text-align: center;
-      color: white;
-      font-size: 14px;
-      margin-bottom: 10px;
-      opacity: 1;
-      transition: opacity 0.5s;
-    }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: linear-gradient(135deg, #40E0D0, #00bcd4); min-height: 100vh; }
+    .container { max-width: 600px; margin: auto; padding: 20px; }
+    h1 { text-align: center; color: white; font-size: 46px; margin-bottom: 25px; font-family: 'Great Vibes', cursive; text-shadow: 0 0 10px rgba(255,255,255,0.9); animation: glow 3s infinite ease-in-out; }
+    @keyframes glow { 0%, 100% { text-shadow: 0 0 10px rgba(255,255,255,0.6); } 50% { text-shadow: 0 0 25px rgba(0,255,255,0.8); } }
+    .create-box { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    input, textarea { width: 100%; padding: 10px; margin-top: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; box-sizing: border-box; }
+    textarea { resize: none; height: 80px; }
+    button { margin-top: 10px; padding: 10px 14px; border: none; border-radius: 8px; background: #00bcd4; color: white; cursor: pointer; font-size: 14px; transition: 0.3s; }
+    button:hover:not(:disabled) { background: #0097a7; }
+    button:disabled { background: #aaa; cursor: not-allowed; opacity: 0.7; }
+    .post { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); animation: fadeIn 0.5s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .post h3 { margin: 0 0 5px; color: #333; }
+    .post small { color: gray; font-size: 11px; }
+    .comments { margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+    #loading-msg { text-align: center; color: white; font-size: 14px; margin-bottom: 10px; transition: opacity 0.5s; }
+    /* Fix for reCAPTCHA badge - moves it so it doesn't block UI */
+    .grecaptcha-badge { visibility: hidden; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Anonymous Stories</h1>
 
-    <!-- Fix 4: loading message shown until App Check is ready -->
     <div id="loading-msg">⏳ Verifying security, please wait...</div>
 
     <div class="create-box">
-      <input id="title" placeholder="Title">
-      <textarea id="content" placeholder="Tell your story..."></textarea>
-      <!-- Fix 3: disabled until App Check + db are ready -->
-      <button id="post-btn" onclick="postStory()" disabled>Post</button>
+      <input id="title" placeholder="Story Title">
+      <textarea id="content" placeholder="Tell your story anonymously..."></textarea>
+      <button id="post-btn" onclick="postStory()" disabled>Post Story</button>
     </div>
+
     <div id="posts"></div>
   </div>
-<script src="script.js"></script>
+
+  <script src="script.js"></script>
 </body>
 </html>
