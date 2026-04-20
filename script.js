@@ -4,7 +4,7 @@ const firebaseConfig = {
   projectId: "lives-saved-through-shar-4b7e4",
   storageBucket: "lives-saved-through-shar-4b7e4.firebasestorage.app",
   messagingSenderId: "916853783639",
-  appId: "1:916853783639:web:827800545fc482e79b3712"
+  appId: "1:916853783639:web:d6ef4757f560a61e9b3712"
 };
 
 firebase.initializeApp(firebaseConfig);
