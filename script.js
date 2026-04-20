@@ -17,11 +17,17 @@ appCheck.activate(
   true
 );
 
-// ⏳ WAIT FOR TOKEN
-setTimeout(startApp, 1500);
+firebase.appCheck().onTokenChanged((token) => {
+  console.log("App Check token ready");
+
+  startApp();
+});
 
 function startApp() {
-  console.log("App Check ready");
+  if (window.appStarted) return;
+  window.appStarted = true;
+
+  console.log("Starting app with valid token");
 
   db = firebase.firestore();
 
