@@ -13,7 +13,7 @@ let db;
 
 const appCheck = firebase.appCheck();
 appCheck.activate(
-  "6Lfkt78sAAAAABnmMnOAVnRjsT_5WfuQ9WKq3K4i",
+  "6Lfkt78sAAAAALVZJ03A1YjSv5pGC2VN_sfv8YJM",
   true
 );
 
