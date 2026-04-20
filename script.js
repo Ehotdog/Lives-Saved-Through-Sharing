@@ -7,33 +7,41 @@ const firebaseConfig = {
   appId: "1:916853783639:web:d6ef4757f560a61e9b3712"
 };
 
+// 1. Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
+// 2. Setup Debug Token BEFORE activating App Check
 if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  // Use a string here if you want to hardcode your debug token from the console
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; 
 }
 
+// 3. Activate App Check
 const appCheck = firebase.appCheck();
+// This uses the v3 Site Key you provided
 appCheck.activate("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9", true);
 
-let db;
+let db = firebase.firestore(); // Initialize DB immediately
 
-firebase.appCheck().onTokenChanged(
-  (tokenResult) => {
-    if (!tokenResult || !tokenResult.token) return;
-    console.log("App Check token ready");
-    startApp();
-  },
-  (error) => {
-    console.error("App Check error:", error);
-  }
-);
+// 4. Single-run initialization check
+let appInitialized = false;
+
+firebase.appCheck().getToken().then(() => {
+    console.log("App Check verified successfully");
+    if (!appInitialized) {
+        startApp();
+        appInitialized = true;
+    }
+}).catch((err) => {
+    console.error("App Check failed to verify:", err);
+    // Even if it fails, we start the app so the user sees a message 
+    // rather than a white screen, but saving will be blocked if Enforced.
+    startApp(); 
+});
 
 function startApp() {
-  if (window.appStarted) return;
-  window.appStarted = true;
-  db = firebase.firestore();
-
+  console.log("Starting App...");
+  
   const msg = document.getElementById("loading-msg");
   if (msg) msg.style.opacity = "0";
   setTimeout(() => { if (msg) msg.remove(); }, 500);
