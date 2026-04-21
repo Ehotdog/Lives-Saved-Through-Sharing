@@ -23,8 +23,6 @@ const appCheck = initializeAppCheck(app, {
 });
 
 const db = getFirestore(app);
-// Force App Check token to be used with Firestore
-db._delegate._authCredentials = db._delegate._authCredentials;
 
 // Wait for a valid App Check token before doing ANYTHING with Firestore
 getToken(appCheck, false).then(() => {
