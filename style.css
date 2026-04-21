@@ -73,41 +73,56 @@ button:hover {
 
 .post {
   background: white;
-  padding: 15px;
+  padding: 16px;
   border-radius: 14px;
   margin-bottom: 20px;
   box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   transition: 0.2s;
 }
-
 .post:hover {
   transform: translateY(-2px);
 }
-
 .post h3 {
-  margin: 0 0 5px;
+  font-size: 18px;
+  margin: 0;
+  color: #111;
 }
-
+.post p {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .post small {
   color: gray;
+  font-size: 12px;
 }
-
 .post button {
   margin-right: 6px;
   font-size: 13px;
   padding: 6px 10px;
   border-radius: 8px;
 }
-
 .comments {
-  margin-top: 10px;
+  margin-top: 6px;
+  border-top: 1px solid #eee;
+  padding-top: 8px;
 }
-
 .comments input {
   margin-top: 5px;
 }
-
 .comments p {
   margin: 5px 0;
   font-size: 13px;
+  color: #444;
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
