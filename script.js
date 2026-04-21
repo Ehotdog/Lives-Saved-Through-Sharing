@@ -20,7 +20,7 @@ const appCheck = firebase.appCheck();
 appCheck.activate("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9", true);
 
 // 4. Force Firestore to wait for the token
-const db = firebase.firestore();
+let db = firebase.firestore();
 
 // Use getToken() to ensure we are verified BEFORE calling loadPosts
 firebase.appCheck().getToken().then(() => {
