@@ -32,8 +32,14 @@ firebase.appCheck().getToken().then(() => {
 });
 
 function startApp() {
-  console.log("Starting App...");
-  
+  if (window.appStarted) return;
+  window.appStarted = true;
+  db = firebase.firestore();
+
+  // This is required in Firebase v8 to attach App Check tokens to Firestore requests
+  db.settings({ experimentalForceLongPolling: false });
+  firebase.firestore.setLogLevel("debug"); // optional, remove after testing
+
   const msg = document.getElementById("loading-msg");
   if (msg) msg.style.opacity = "0";
   setTimeout(() => { if (msg) msg.remove(); }, 500);
