@@ -7,36 +7,32 @@ const firebaseConfig = {
   appId: "1:916853783639:web:d6ef4757f560a61e9b3712"
 };
 
-// 1. Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+const app = firebase.initializeApp(firebaseConfig);
 
-// 2. Setup Debug Token for Localhost
-if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; 
-}
-
-// 3. Activate App Check
+// App Check must be initialized before Firestore
 const appCheck = firebase.appCheck();
-appCheck.activate("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9", true);
+appCheck.activate(
+  new firebase.appCheck.ReCaptchaV3Provider("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9"),
+  true
+);
 
-// 4. Force Firestore to wait for the token
-let db = firebase.firestore();
+let db;
 
-// Use getToken() to ensure we are verified BEFORE calling loadPosts
-firebase.appCheck().getToken().then(() => {
-    console.log("App Check verified successfully.");
+firebase.appCheck().onTokenChanged(
+  (tokenResult) => {
+    if (!tokenResult || !tokenResult.token) return;
+    console.log("App Check token ready");
     startApp();
-}).catch(err => {
-    console.error("App Check failed. Firestore will likely block requests.", err);
-    startApp(); // Still start so the UI loads
-});
+  },
+  (error) => {
+    console.error("App Check error:", error);
+  }
+);
 
 function startApp() {
   if (window.appStarted) return;
   window.appStarted = true;
 
-  // This tells Firestore to use App Check tokens — required in v8
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = false;
   db = firebase.firestore();
 
   const msg = document.getElementById("loading-msg");
@@ -77,7 +73,6 @@ function containsBadWords(text) {
 
 function postStory() {
   if (!db) return alert("Still loading, please wait a moment and try again.");
-
   const title = document.getElementById("title").value.trim();
   const content = document.getElementById("content").value.trim();
   const now = Date.now();
@@ -108,12 +103,10 @@ function postStory() {
 function likePost(postId) {
   if (!db) return alert("Still loading, please try again.");
   const ref = db.collection("posts").doc(postId);
-
   ref.get().then(doc => {
     if (!doc.exists) return;
     const data = doc.data();
     if ((data.likedBy || []).includes(userId)) return alert("Already liked");
-
     ref.update({
       likes: (data.likes || 0) + 1,
       likedBy: firebase.firestore.FieldValue.arrayUnion(userId)
@@ -133,13 +126,11 @@ function addComment(postId) {
   if (containsBadWords(text)) return alert("Blocked");
 
   const postRef = db.collection("posts").doc(postId);
-
   postRef.collection("comments").add({
     text,
     user: displayName,
     time: now
   });
-
   postRef.update({
     commentsCount: firebase.firestore.FieldValue.increment(1)
   });
@@ -150,9 +141,7 @@ function addComment(postId) {
 }
 
 function loadComments(postId) {
-  db.collection("posts")
-    .doc(postId)
-    .collection("comments")
+  db.collection("posts").doc(postId).collection("comments")
     .orderBy("time")
     .onSnapshot(snapshot => {
       const div = document.getElementById(`comments-${postId}`);
@@ -169,18 +158,15 @@ function loadComments(postId) {
 function editPost(id, oldTitle, oldContent) {
   if (!db) return alert("Still loading, please try again.");
   const ref = db.collection("posts").doc(id);
-
   ref.get().then(doc => {
     if (!doc.exists) return;
     const data = doc.data();
     if (data.ownerId !== userId) return alert("Not your post");
-
     const newTitle = prompt("Edit title:", oldTitle);
     const newContent = prompt("Edit content:", oldContent);
     if (!newTitle || !newContent) return;
     if (newTitle.length > 80) return alert("Title too long");
     if (newContent.length > 500) return alert("Story too long");
-
     ref.update({ title: newTitle, content: newContent });
   });
 }
@@ -188,7 +174,6 @@ function editPost(id, oldTitle, oldContent) {
 function deletePost(id) {
   if (!db) return alert("Still loading, please try again.");
   const ref = db.collection("posts").doc(id);
-
   ref.get().then(doc => {
     if (!doc.exists) return;
     const data = doc.data();
@@ -210,14 +195,12 @@ function loadPosts() {
       const id = doc.id;
       const time = p.createdAt?.toMillis?.() || now;
       const hoursOld = (now - time) / (1000 * 60 * 60);
-
       const likes = p.likes || 0;
       const comments = p.commentsCount || 0;
       const engagement = (likes * 1.0) + (comments * 1.5);
       const decay = Math.pow(hoursOld + 2, 1.5);
       const boost = hoursOld < 1 ? 2.0 : 1.0;
       const score = (engagement / decay) * boost;
-
       posts.push({ id, ...p, score });
     });
 
@@ -226,10 +209,9 @@ function loadPosts() {
 
     posts.forEach(post => {
       const isOwner = post.ownerId === userId;
-
       const div = document.createElement("div");
       div.className = "post";
-    div.innerHTML = `
+      div.innerHTML = `
         <h3>${sanitize(post.title)}</h3>
         <p>${sanitize(post.content)}</p>
         <small>${sanitize(post.user || "Unknown")}</small>
@@ -245,12 +227,11 @@ function loadPosts() {
           <div id="comments-${post.id}"></div>
         </div>
       `;
-
       postsDiv.appendChild(div);
       loadComments(post.id);
     });
 
   }, err => {
     console.error("Snapshot error:", err);
-  }); 
+  });
 }
