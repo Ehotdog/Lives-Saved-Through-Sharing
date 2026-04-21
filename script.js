@@ -9,8 +9,8 @@ const firebaseConfig = {
 
 const app = firebase.initializeApp(firebaseConfig);
 
-// App Check must be initialized before Firestore
-const appCheck = firebase.appCheck();
+// Must use this exact syntax for v9 compat
+const appCheck = firebase.appCheck(app);
 appCheck.activate(
   new firebase.appCheck.ReCaptchaV3Provider("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9"),
   true
@@ -18,7 +18,7 @@ appCheck.activate(
 
 let db;
 
-firebase.appCheck().onTokenChanged(
+firebase.appCheck(app).onTokenChanged(
   (tokenResult) => {
     if (!tokenResult || !tokenResult.token) return;
     console.log("App Check token ready");
@@ -33,7 +33,7 @@ function startApp() {
   if (window.appStarted) return;
   window.appStarted = true;
 
-  db = firebase.firestore();
+  db = firebase.firestore(app); // pass app explicitly
 
   const msg = document.getElementById("loading-msg");
   if (msg) msg.style.opacity = "0";
