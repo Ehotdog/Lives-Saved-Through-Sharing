@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { initializeAppCheck, ReCaptchaV3Provider } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check.js";
+import { initializeAppCheck, ReCaptchaV3Provider, getToken } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check.js";
 import {
   getFirestore, collection, doc, addDoc, getDoc, updateDoc,
   deleteDoc, onSnapshot, query, orderBy, increment, arrayUnion,
@@ -17,13 +17,25 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// App Check must be initialized immediately after app, before Firestore
 const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaV3Provider("6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9"),
   isTokenAutoRefreshEnabled: true
 });
 
 const db = getFirestore(app);
+
+// Wait for a valid App Check token before doing ANYTHING with Firestore
+getToken(appCheck, false).then(() => {
+  console.log("App Check token ready");
+  const msg = document.getElementById("loading-msg");
+  if (msg) msg.remove();
+  const btn = document.getElementById("post-btn");
+  if (btn) btn.disabled = false;
+  loadPosts();
+}).catch(err => {
+  console.error("App Check failed:", err);
+  document.getElementById("loading-msg").textContent = "Security check failed. Please refresh.";
+});
 
 let userId = localStorage.getItem("userId");
 if (!userId) {
