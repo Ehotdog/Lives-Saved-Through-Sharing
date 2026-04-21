@@ -188,10 +188,12 @@ function loadPosts() {
       const hoursOld = (now - time) / (1000 * 60 * 60);
       const likes = p.likes || 0;
       const comments = p.commentsCount || 0;
-      const engagement = (likes * 1.0) + (comments * 1.5);
-      const decay = Math.pow(hoursOld + 2, 1.5);
-      const boost = hoursOld < 1 ? 2.0 : 1.0;
-      const score = (engagement / decay) * boost;
+
+      const engagement = (likes * 2.0) + (comments * 3.0);
+      const decay = Math.pow(hoursOld + 1, 1.2);
+      const freshBoost = Math.max(0, 1 - hoursOld / 24);
+      const score = (engagement + 1) / decay + freshBoost;
+
       posts.push({ id, ...p, score });
     });
 
