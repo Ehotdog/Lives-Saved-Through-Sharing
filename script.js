@@ -190,9 +190,9 @@ function loadPosts() {
       const comments = p.commentsCount || 0;
 
       const engagement = (likes * 2.0) + (comments * 3.0);
-      const decay = Math.pow(hoursOld + 1, 1.2);
-      const freshBoost = Math.max(0, 1 - hoursOld / 24);
-      const score = (engagement + 1) / decay + freshBoost;
+const viral = Math.log1p(likes + comments * 2);
+const decay = Math.pow(hoursOld + 1, 0.6);
+const score = (engagement + viral) / decay;
 
       posts.push({ id, ...p, score });
     });
