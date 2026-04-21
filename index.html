@@ -3,11 +3,6 @@
 <head>
   <title>Anonymous Stories</title>
   <link rel="icon" href="data:,">
-  <!-- Upgraded to Firebase v9 compat which properly supports App Check -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check-compat.js"></script>
-  <script src="https://www.google.com/recaptcha/api.js?render=6Ld-W8AsAAAAAFb16D3uMshuM2lRQ6HyHkUAXwR9"></script>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@600&display=swap" rel="stylesheet">
   <style>
     body {
@@ -15,21 +10,14 @@
       font-family: system-ui, -apple-system, sans-serif;
       background: linear-gradient(135deg, #40E0D0, #00bcd4);
     }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-    }
+    .container { max-width: 600px; margin: auto; padding: 20px; }
     h1 {
       text-align: center;
       color: white;
       font-size: 46px;
       margin-bottom: 25px;
       font-family: 'Great Vibes', cursive;
-      text-shadow:
-        0 0 10px rgba(255,255,255,0.9),
-        0 0 20px rgba(0,255,255,0.6),
-        0 0 30px rgba(0,200,255,0.4);
+      text-shadow: 0 0 10px rgba(255,255,255,0.9), 0 0 20px rgba(0,255,255,0.6);
       animation: glow 3s infinite ease-in-out;
     }
     @keyframes glow {
@@ -38,59 +26,33 @@
       100% { text-shadow: 0 0 10px rgba(255,255,255,0.6); }
     }
     .create-box {
-      background: white;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: white; padding: 15px; border-radius: 12px;
+      margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     input, textarea {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      box-sizing: border-box;
+      width: 100%; padding: 10px; margin-top: 10px;
+      border-radius: 8px; border: 1px solid #ccc;
+      font-size: 14px; box-sizing: border-box;
     }
-    textarea {
-      resize: none;
-      height: 80px;
-    }
+    textarea { resize: none; height: 80px; }
     button {
-      margin-top: 10px;
-      padding: 10px 14px;
-      border: none;
-      border-radius: 8px;
-      background: #00bcd4;
-      color: white;
-      cursor: pointer;
-      font-size: 14px;
+      margin-top: 10px; padding: 10px 14px; border: none;
+      border-radius: 8px; background: #00bcd4; color: white;
+      cursor: pointer; font-size: 14px;
     }
     button:hover { background: #0097a7; }
-    button:disabled {
-      background: #aaa;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
+    button:disabled { background: #aaa; cursor: not-allowed; opacity: 0.7; }
     .post {
-      background: white;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: white; padding: 15px; border-radius: 12px;
+      margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     .post h3 { margin: 0 0 5px; }
     .post small { color: gray; }
     .comments { margin-top: 10px; }
     .comments p { margin: 5px 0; font-size: 13px; }
     #loading-msg {
-      text-align: center;
-      color: white;
-      font-size: 14px;
-      margin-bottom: 10px;
-      opacity: 1;
-      transition: opacity 0.5s;
+      text-align: center; color: white; font-size: 14px;
+      margin-bottom: 10px; opacity: 1; transition: opacity 0.5s;
     }
   </style>
 </head>
@@ -105,6 +67,6 @@
     </div>
     <div id="posts"></div>
   </div>
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
