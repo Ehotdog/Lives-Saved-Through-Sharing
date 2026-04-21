@@ -3,7 +3,6 @@
 <head>
   <title>Anonymous Stories</title>
   <link rel="icon" href="data:,">
-  <!-- Fix: preconnect + preload to eliminate font flash -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" as="style">
@@ -14,16 +13,23 @@
       font-family: system-ui, -apple-system, sans-serif;
       background: linear-gradient(135deg, #40E0D0, #00bcd4);
     }
-    .container { max-width: 600px; margin: auto; padding: 20px; }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
     h1 {
       text-align: center;
       color: white;
       font-size: 46px;
       margin-bottom: 25px;
       font-family: 'Great Vibes', cursive;
-      text-shadow: 0 0 10px rgba(255,255,255,0.9), 0 0 20px rgba(0,255,255,0.6);
+      text-shadow:
+        0 0 10px rgba(255,255,255,0.9),
+        0 0 20px rgba(0,255,255,0.6),
+        0 0 30px rgba(0,200,255,0.4);
       animation: glow 3s infinite ease-in-out;
-      visibility: hidden; /* hide until font loaded */
+      visibility: hidden;
     }
     @keyframes glow {
       0% { text-shadow: 0 0 10px rgba(255,255,255,0.6); }
@@ -31,36 +37,88 @@
       100% { text-shadow: 0 0 10px rgba(255,255,255,0.6); }
     }
     .create-box {
-      background: white; padding: 15px; border-radius: 12px;
-      margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: white;
+      padding: 15px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
     }
     input, textarea {
-      width: 100%; padding: 10px; margin-top: 10px;
-      border-radius: 8px; border: 1px solid #ccc;
-      font-size: 14px; box-sizing: border-box;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+      box-sizing: border-box;
+      outline: none;
     }
-    textarea { resize: none; height: 80px; }
+    textarea {
+      resize: none;
+      height: 90px;
+    }
     button {
-      margin-top: 10px; padding: 10px 14px; border: none;
-      border-radius: 8px; background: #00bcd4; color: white;
-      cursor: pointer; font-size: 14px;
+      margin-top: 10px;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      background: #00bcd4;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.2s;
     }
-    button:hover { background: #0097a7; }
-    button:disabled { background: #aaa; cursor: not-allowed; opacity: 0.7; }
+    button:hover {
+      background: #0097a7;
+      transform: scale(1.02);
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
     .post {
-      background: white; padding: 15px; border-radius: 12px;
-      margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: white;
+      padding: 15px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+      transition: 0.2s;
     }
-    .post h3 { margin: 0 0 5px; }
-    .post small { color: gray; }
-    .comments { margin-top: 10px; }
-    .comments p { margin: 5px 0; font-size: 13px; }
+    .post:hover {
+      transform: translateY(-2px);
+    }
+    .post h3 {
+      margin: 0 0 5px;
+    }
+    .post small {
+      color: gray;
+    }
+    .post button {
+      margin-right: 6px;
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+    .comments {
+      margin-top: 10px;
+    }
+    .comments input {
+      margin-top: 5px;
+    }
+    .comments p {
+      margin: 5px 0;
+      font-size: 13px;
+    }
     #loading-msg {
-      text-align: center; color: white; font-size: 14px;
-      margin-bottom: 10px; opacity: 1; transition: opacity 0.5s;
+      text-align: center;
+      color: white;
+      font-size: 14px;
+      margin-bottom: 10px;
+      opacity: 1;
+      transition: opacity 0.5s;
     }
   </style>
-  <!-- Fix: show h1 only after font is ready -->
   <script>
     document.fonts.ready.then(() => {
       const h1 = document.querySelector('h1');
