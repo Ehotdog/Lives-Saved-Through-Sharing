@@ -24,19 +24,6 @@ const appCheck = initializeAppCheck(app, {
 
 const db = getFirestore(app);
 
-// Wait for a valid App Check token before doing ANYTHING with Firestore
-getToken(appCheck, false).then(() => {
-  console.log("App Check token ready");
-  const msg = document.getElementById("loading-msg");
-  if (msg) msg.remove();
-  const btn = document.getElementById("post-btn");
-  if (btn) btn.disabled = false;
-  loadPosts();
-}).catch(err => {
-  console.error("App Check failed:", err);
-  document.getElementById("loading-msg").textContent = "Security check failed. Please refresh.";
-});
-
 let userId = localStorage.getItem("userId");
 if (!userId) {
   userId = crypto.randomUUID();
@@ -63,14 +50,19 @@ function containsBadWords(text) {
   return banned.some(w => text.toLowerCase().includes(w));
 }
 
-// Remove loading message and enable button
-const msg = document.getElementById("loading-msg");
-if (msg) msg.remove();
-const btn = document.getElementById("post-btn");
-if (btn) btn.disabled = false;
-
-// Start app immediately — App Check token is auto-attached by SDK
-loadPosts();
+// Wait for App Check token before starting
+getToken(appCheck, false).then(() => {
+  console.log("App Check token ready");
+  const msg = document.getElementById("loading-msg");
+  if (msg) msg.remove();
+  const btn = document.getElementById("post-btn");
+  if (btn) btn.disabled = false;
+  loadPosts();
+}).catch(err => {
+  console.error("App Check failed:", err);
+  const msg = document.getElementById("loading-msg");
+  if (msg) msg.textContent = "Security check failed. Please refresh.";
+});
 
 async function postStory() {
   const title = document.getElementById("title").value.trim();
@@ -182,15 +174,23 @@ function loadPosts() {
     let posts = [];
 
     snapshot.forEach(d => {
-      const p = d.data();
+      const raw = d.data();
+      const p = {
+        title: raw.title || "",
+        content: raw.content || "",
+        user: raw.user || "Unknown",
+        ownerId: raw.ownerId || "",
+        createdAt: raw.createdAt || null,
+        likes: Number(raw.likes) || 0,
+        likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
+        commentsCount: Number(raw.commentsCount) || 0
+      };
+
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
       const hoursOld = (now - time) / (1000 * 60 * 60);
-      const likes = p.likes || 0;
-      const comments = p.commentsCount || 0;
-
-      const engagement = (likes * 2.0) + (comments * 3.0);
-      const viral = Math.log1p(likes + comments * 2);
+      const engagement = (p.likes * 2.0) + (p.commentsCount * 3.0);
+      const viral = Math.log1p(p.likes + p.commentsCount * 2);
       const decay = Math.pow(hoursOld + 1, 0.6);
       const score = (engagement + viral) / decay;
 
@@ -207,9 +207,9 @@ function loadPosts() {
       div.innerHTML = `
         <h3>${sanitize(post.title)}</h3>
         <p>${sanitize(post.content)}</p>
-        <small>${sanitize(post.user || "Unknown")}</small>
+        <small>${sanitize(post.user)}</small>
         <br><br>
-        <button onclick="window.likePost('${post.id}')">♡ ${post.likes || 0}</button>
+        <button onclick="window.likePost('${post.id}')">♡ ${post.likes}</button>
         ${isOwner ? `
           <button onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎</button>
           <button onclick="window.deletePost('${post.id}')">🗑</button>
@@ -229,7 +229,6 @@ function loadPosts() {
   });
 }
 
-// Expose functions to window since we're using type="module"
 window.postStory = postStory;
 window.likePost = likePost;
 window.addComment = addComment;
