@@ -3,6 +3,10 @@
 <head>
   <title>Anonymous Stories</title>
   <link rel="icon" href="data:,">
+  <!-- Fix: preconnect + preload to eliminate font flash -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" as="style">
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@600&display=swap" rel="stylesheet">
   <style>
     body {
@@ -19,6 +23,7 @@
       font-family: 'Great Vibes', cursive;
       text-shadow: 0 0 10px rgba(255,255,255,0.9), 0 0 20px rgba(0,255,255,0.6);
       animation: glow 3s infinite ease-in-out;
+      visibility: hidden; /* hide until font loaded */
     }
     @keyframes glow {
       0% { text-shadow: 0 0 10px rgba(255,255,255,0.6); }
@@ -55,6 +60,13 @@
       margin-bottom: 10px; opacity: 1; transition: opacity 0.5s;
     }
   </style>
+  <!-- Fix: show h1 only after font is ready -->
+  <script>
+    document.fonts.ready.then(() => {
+      const h1 = document.querySelector('h1');
+      if (h1) h1.style.visibility = 'visible';
+    });
+  </script>
 </head>
 <body>
   <div class="container">
