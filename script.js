@@ -174,72 +174,57 @@ async function deletePost(id) {
   await deleteDoc(ref);
 }
 
-function loadPosts(db) {
-  db.collection("posts")
-    .onSnapshot(snapshot => {
+function loadPosts() {
+  onSnapshot(collection(db, "posts"), snapshot => {
+    console.log("Snapshot fired");
+    const postsDiv = document.getElementById("posts");
+    const now = Date.now();
+    let posts = [];
 
-      console.log("Snapshot fired");
-
-      const postsDiv = document.getElementById("posts");
-      const now = Date.now();
-      let posts = [];
-
-      snapshot.forEach(doc => {
-        const p = doc.data();
-
-        const time = p.createdAt?.toMillis?.() || now;
-        const hoursOld = (now - time) / (1000 * 60 * 60);
-
-        const score =
-          ((p.likes || 0) + (p.commentsCount || 0) * 2)
-          / Math.pow(hoursOld + 2, 1.3);
-
-        posts.push({
-          id: doc.id,
-          ...p,
-          score
-        });
-      });
-
-      // 🔥 SORT BY SCORE
-      posts.sort((a, b) => b.score - a.score);
-
-      postsDiv.innerHTML = "";
-
-      posts.forEach(post => {
-        const isOwner = post.ownerId === userId;
-
-        postsDiv.innerHTML += `
-          <div class="post">
-            <h3>${post.title || ""}</h3>
-            <p>${post.content || ""}</p>
-            <small>${post.user || "Unknown"}</small>
-
-            <br><br>
-
-            <button onclick="likePost('${post.id}')">
-              ♡ ${post.likes || 0}
-            </button>
-
-            ${isOwner ? `
-              <button onclick="editPost('${post.id}', \`${post.title}\`, \`${post.content}\`)">✎</button>
-              <button onclick="deletePost('${post.id}')">🗑</button>
-            ` : ""}
-
-            <div class="comments">
-              <input id="comment-${post.id}" placeholder="Write a comment...">
-              <button onclick="addComment('${post.id}')">Comment</button>
-              <div id="comments-${post.id}"></div>
-            </div>
-          </div>
-        `;
-
-        loadComments(post.id);
-      });
-
-    }, err => {
-      console.log("Snapshot error:", err);
+    snapshot.forEach(d => {
+      const p = d.data();
+      const id = d.id;
+      const time = p.createdAt?.toMillis?.() || now;
+      const hoursOld = (now - time) / (1000 * 60 * 60);
+      const likes = p.likes || 0;
+      const comments = p.commentsCount || 0;
+      const engagement = (likes * 1.0) + (comments * 1.5);
+      const decay = Math.pow(hoursOld + 2, 1.5);
+      const boost = hoursOld < 1 ? 2.0 : 1.0;
+      const score = (engagement / decay) * boost;
+      posts.push({ id, ...p, score });
     });
+
+    posts.sort((a, b) => b.score - a.score);
+    postsDiv.innerHTML = "";
+
+    posts.forEach(post => {
+      const isOwner = post.ownerId === userId;
+      const div = document.createElement("div");
+      div.className = "post";
+      div.innerHTML = `
+        <h3>${sanitize(post.title)}</h3>
+        <p>${sanitize(post.content)}</p>
+        <small>${sanitize(post.user || "Unknown")}</small>
+        <br><br>
+        <button onclick="window.likePost('${post.id}')">♡ ${post.likes || 0}</button>
+        ${isOwner ? `
+          <button onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎</button>
+          <button onclick="window.deletePost('${post.id}')">🗑</button>
+        ` : ""}
+        <div class="comments">
+          <input id="comment-${post.id}" placeholder="Write a comment...">
+          <button onclick="window.addComment('${post.id}')">Comment</button>
+          <div id="comments-${post.id}"></div>
+        </div>
+      `;
+      postsDiv.appendChild(div);
+      loadComments(post.id);
+    });
+
+  }, err => {
+    console.error("Snapshot error:", err);
+  });
 }
 
 // Expose functions to window since we're using type="module"
