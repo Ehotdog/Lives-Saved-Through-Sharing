@@ -598,32 +598,3 @@ getToken(appCheck, false).then(() => {
 window.switchTab = window.switchTab;
 window.openPostModal = window.openPostModal;
 window.closeModal = window.closeModal;
-
-jsrules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /posts/{postId} {
-      allow read, write: if true;
-      match /comments/{commentId} {
-        allow read, write: if true;
-      }
-    }
-    match /videos/{videoId} {
-      allow read: if true;
-      allow create: if true;
-      allow update, delete: if false;
-    }
-    match /groups/{groupId} {
-      allow read, write: if true;
-      match /posts/{postId} {
-        allow read, write: if true;
-        match /comments/{commentId} {
-          allow read, write: if true;
-        }
-      }
-    }
-    match /contacts/{contactId} {
-      allow read, write: if true;
-    }
-  }
-}
