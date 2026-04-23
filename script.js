@@ -598,7 +598,7 @@ getToken(appCheck, false).then(() => {
 window.switchTab = window.switchTab;
 window.openPostModal = window.openPostModal;
 window.closeModal = window.closeModal;
-Also update your Firestore rules to cover the new collections:
+
 jsrules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
