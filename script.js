@@ -300,7 +300,7 @@ async function loadFYP() {
               <div class="yt-play">▶</div>
             </div>
             <div class="yt-player" style="display:none">
-              <iframe src="https://www.youtube.com/embed/${sanitize(item.data.youtubeId)}?autoplay=1"
+              <iframe src="https://www.youtube.com/embed/${sanitize(item.data.youtubeId)}"
                 allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
               </iframe>
             </div>
@@ -374,7 +374,7 @@ function loadVideos() {
           <div class="yt-play">▶</div>
         </div>
         <div class="yt-player" style="display:none">
-          <iframe src="https://www.youtube.com/embed/${sanitize(v.youtubeId)}?autoplay=1"
+          <iframe src="https://www.youtube.com/embed/${sanitize(v.youtubeId)}"
             allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
           </iframe>
         </div>
