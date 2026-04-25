@@ -257,10 +257,10 @@ async function loadFYP() {
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
       const hoursOld = (now - time) / (1000 * 60 * 60);
-      const engagement = (p.likes * 2.0) + (p.commentsCount * 3.0);
-      const viral = Math.log1p(p.likes + p.commentsCount * 2);
-      const decay = Math.pow(hoursOld + 1, 0.6);
-      const score = (engagement + viral) / decay;
+     const engagement = (p.likes * 3.0) + (p.commentsCount * 5.0);
+const viral = Math.log1p(p.likes + p.commentsCount * 2) * 3;
+const decay = Math.pow(hoursOld + 1, 0.4);
+const score = (engagement + viral) / decay;
       posts.push({ id, ...p, score });
     });
 
@@ -564,10 +564,10 @@ function loadGroupPosts(groupId) {
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
       const hoursOld = (now - time) / (1000 * 60 * 60);
-      const engagement = (p.likes * 2.0) + (p.commentsCount * 3.0);
-      const viral = Math.log1p(p.likes + p.commentsCount * 2);
-      const decay = Math.pow(hoursOld + 1, 0.6);
-      const score = (engagement + viral) / decay;
+      const engagement = (p.likes * 3.0) + (p.commentsCount * 5.0);
+const viral = Math.log1p(p.likes + p.commentsCount * 2) * 3;
+const decay = Math.pow(hoursOld + 1, 0.4);
+const score = (engagement + viral) / decay;
       posts.push({ id, ...p, score });
     });
 
