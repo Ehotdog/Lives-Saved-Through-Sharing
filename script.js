@@ -6,7 +6,6 @@ import {
   serverTimestamp, where
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-// ── FIREBASE SETUP ──
 const firebaseConfig = {
   apiKey: "AIzaSyBzegyz_g4EsaQd09wgAnIFlf8iYERY0sw",
   authDomain: "lives-saved-through-shar-4b7e4.firebaseapp.com",
@@ -23,7 +22,6 @@ const appCheck = initializeAppCheck(app, {
 });
 const db = getFirestore(app);
 
-// ── USER IDENTITY ──
 let userId = localStorage.getItem("userId");
 if (!userId) { userId = crypto.randomUUID(); localStorage.setItem("userId", userId); }
 
@@ -33,12 +31,10 @@ if (!displayName) { displayName = "User" + Math.floor(Math.random() * 9999); loc
 let lastPostTime = parseInt(localStorage.getItem("lastPostTime")) || 0;
 let lastCommentTime = parseInt(localStorage.getItem("lastCommentTime")) || 0;
 
-// ── STATE ──
 let currentTab = "fyp";
 let currentGroupId = null;
 let currentGroupName = null;
 
-// ── UTILS ──
 function sanitize(str) {
   const div = document.createElement("div");
   div.textContent = str || "";
@@ -55,7 +51,6 @@ function extractYoutubeId(url) {
   return match ? match[1] : null;
 }
 
-// ── TAB SWITCHING ──
 window.switchTab = function(tab) {
   currentTab = tab;
   document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
@@ -64,11 +59,9 @@ window.switchTab = function(tab) {
   document.querySelectorAll(".tab-btn")[["fyp","videos","groups","contact"].indexOf(tab)].classList.add("active");
 };
 
-// ── MODAL ──
 window.openPostModal = function() {
   const modal = document.getElementById("modal-content");
   const overlay = document.getElementById("modal-overlay");
-
   let html = "";
 
   if (currentTab === "fyp") {
@@ -126,10 +119,10 @@ window.openPostModal = function() {
         <button class="modal-close" onclick="closeModal()">✕</button>
       </div>
       <div class="form-group">
-        <input type="text" id="modal-contact-name" placeholder="Display name (anonymous is fine)">
-        <textarea id="modal-contact-note" placeholder="A note about yourself or why you want to connect..."></textarea>
-        <input type="tel" id="modal-contact-number" placeholder="Phone number (optional)">
-        <input type="email" id="modal-contact-email" placeholder="Email (optional)">
+        <input type="text" id="modal-contact-name" placeholder="Display name">
+        <textarea id="modal-contact-note" placeholder="A note about yourself..."></textarea>
+        <input type="tel" id="modal-contact-number" placeholder="Phone number for calls (optional)">
+        <input type="tel" id="modal-contact-text" placeholder="Number to text (optional)">
         <button class="btn btn-primary" onclick="submitContact()">Post Card</button>
       </div>`;
   }
@@ -144,26 +137,19 @@ window.closeModal = function(e) {
   }
 };
 
-// ── FYP: POST ──
 window.submitPost = async function() {
   const title = document.getElementById("modal-title").value.trim();
   const content = document.getElementById("modal-content-text").value.trim();
   const now = Date.now();
-
   if (now - lastPostTime < 30000) return alert("Wait before posting again");
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Story too long");
   if (containsBadWords(title) || containsBadWords(content)) return alert("Blocked");
-
   await addDoc(collection(db, "posts"), {
-    title, content,
-    user: displayName,
-    ownerId: userId,
-    createdAt: serverTimestamp(),
-    likes: 0, likedBy: [], commentsCount: 0
+    title, content, user: displayName, ownerId: userId,
+    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0
   });
-
   lastPostTime = now;
   localStorage.setItem("lastPostTime", now);
   document.getElementById("modal-overlay").classList.remove("open");
@@ -213,9 +199,8 @@ window.deletePost = async function(id) {
   await deleteDoc(ref);
 };
 
-function loadComments(postId, collectionPath) {
-  const path = collectionPath || ["posts", postId, "comments"];
-  const q = query(collection(db, ...path), orderBy("time"));
+function loadComments(postId) {
+  const q = query(collection(db, "posts", postId, "comments"), orderBy("time"));
   onSnapshot(q, snapshot => {
     const div = document.getElementById(`comments-${postId}`);
     if (!div) return;
@@ -228,9 +213,7 @@ function loadComments(postId, collectionPath) {
   });
 }
 
-// ── FYP: LOAD ──
 async function loadFYP() {
-  // Load all content types first
   const [videosSnap, groupsSnap, contactsSnap] = await Promise.all([
     new Promise(res => onSnapshot(query(collection(db, "videos"), where("status", "==", "approved")), res)),
     new Promise(res => onSnapshot(collection(db, "groups"), res)),
@@ -245,10 +228,8 @@ async function loadFYP() {
     snapshot.forEach(d => {
       const raw = d.data();
       const p = {
-        title: raw.title || "",
-        content: raw.content || "",
-        user: raw.user || "Unknown",
-        ownerId: raw.ownerId || "",
+        title: raw.title || "", content: raw.content || "",
+        user: raw.user || "Unknown", ownerId: raw.ownerId || "",
         createdAt: raw.createdAt || null,
         likes: Number(raw.likes) || 0,
         likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
@@ -257,10 +238,10 @@ async function loadFYP() {
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
       const hoursOld = (now - time) / (1000 * 60 * 60);
-     const engagement = (p.likes * 3.0) + (p.commentsCount * 5.0);
-const viral = Math.log1p(p.likes + p.commentsCount * 2) * 3;
-const decay = Math.pow(hoursOld + 1, 0.4);
-const score = (engagement + viral) / decay;
+      const engagement = (p.likes * 3.0) + (p.commentsCount * 5.0);
+      const viral = Math.log1p(p.likes + p.commentsCount * 2) * 3;
+      const decay = Math.pow(hoursOld + 1, 0.4);
+      const score = (engagement + viral) / decay;
       posts.push({ id, ...p, score });
     });
 
@@ -272,30 +253,14 @@ const score = (engagement + viral) / decay;
       return;
     }
 
-    // Build injected content pool
     let injected = [];
-
-    videosSnap.forEach(d => {
-      const v = d.data();
-      injected.push({ type: "video", data: v });
-    });
-
-    groupsSnap.forEach(d => {
-      const g = d.data();
-      injected.push({ type: "group", data: { ...g, id: d.id } });
-    });
-
-    contactsSnap.forEach(d => {
-      const c = d.data();
-      injected.push({ type: "contact", data: c });
-    });
-
-    // Shuffle injected pool
+    videosSnap.forEach(d => injected.push({ type: "video", data: d.data() }));
+    groupsSnap.forEach(d => injected.push({ type: "group", data: { ...d.data(), id: d.id } }));
+    contactsSnap.forEach(d => injected.push({ type: "contact", data: d.data() }));
     injected.sort(() => Math.random() - 0.5);
     let injectIndex = 0;
 
     posts.forEach((post, i) => {
-      // Render post card
       const isOwner = post.ownerId === userId;
       const div = document.createElement("div");
       div.className = "card";
@@ -321,7 +286,6 @@ const score = (engagement + viral) / decay;
       feed.appendChild(div);
       loadComments(post.id);
 
-      // Every 5 posts inject 1 card
       if ((i + 1) % 5 === 0 && injected.length > 0) {
         const item = injected[injectIndex % injected.length];
         injectIndex++;
@@ -331,20 +295,23 @@ const score = (engagement + viral) / decay;
           injectDiv.className = "video-card";
           injectDiv.innerHTML = `
             <div style="background:#f0f2f5;padding:6px 12px;font-size:11px;color:#999;">📺 Recommended Video</div>
-            <iframe src="https://www.youtube.com/embed/${sanitize(item.data.youtubeId)}"
-              allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
-            </iframe>
-            <div class="video-info">
-              <h3>${sanitize(item.data.title)}</h3>
-              <small>🎬 ${sanitize(item.data.creator)}</small>
+            <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">
+              <img src="https://img.youtube.com/vi/${sanitize(item.data.youtubeId)}/hqdefault.jpg">
+              <div class="yt-play">▶</div>
+            </div>
+            <div class="yt-player" style="display:none">
+              <iframe src="https://www.youtube.com/embed/${sanitize(item.data.youtubeId)}?autoplay=1"
+                allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+              </iframe>
+            </div>
+            <div class="yt-info">
+              <div class="yt-title">${sanitize(item.data.title)}</div>
+              <div class="yt-creator">🎬 ${sanitize(item.data.creator)}</div>
             </div>
           `;
         } else if (item.type === "group") {
           injectDiv.className = "group-card";
-          injectDiv.onclick = () => {
-            window.switchTab("groups");
-            window.openGroup(item.data.id, item.data.name);
-          };
+          injectDiv.onclick = () => { window.switchTab("groups"); window.openGroup(item.data.id, item.data.name); };
           injectDiv.innerHTML = `
             <div class="group-icon">${sanitize(item.data.emoji || "👥")}</div>
             <div class="group-info">
@@ -361,63 +328,59 @@ const score = (engagement + viral) / decay;
             <div class="contact-name">${sanitize(item.data.name)}</div>
             ${item.data.note ? `<div class="contact-note">${sanitize(item.data.note)}</div>` : ""}
             <div class="contact-btns">
-              ${item.data.number ? `<a href="tel:${sanitize(item.data.number)}" class="btn btn-call">📞 Call (*67 first)</a>` : ""}
-              ${item.data.email ? `<a href="mailto:${sanitize(item.data.email)}" class="btn btn-email">✉️ Email</a>` : ""}
+              ${item.data.number ? `<a href="tel:${sanitize(item.data.number)}" class="btn btn-call">📞 ${sanitize(item.data.number)}</a>` : ""}
+              ${item.data.textNumber ? `<a href="sms:${sanitize(item.data.textNumber)}" class="btn btn-primary">💬 ${sanitize(item.data.textNumber)}</a>` : ""}
             </div>
           `;
         }
-
         feed.appendChild(injectDiv);
       }
     });
-
   }, err => console.error("FYP error:", err));
 }
 
-// ── VIDEOS: SUBMIT ──
 window.submitVideo = async function() {
   const url = document.getElementById("modal-video-url").value.trim();
   const title = document.getElementById("modal-video-title").value.trim();
   const creator = document.getElementById("modal-video-creator").value.trim();
-
   if (!url || !title || !creator) return alert("Fill in all fields");
   const youtubeId = extractYoutubeId(url);
   if (!youtubeId) return alert("Invalid YouTube URL");
-
   await addDoc(collection(db, "videos"), {
-    youtubeId, title, creator,
-    status: "pending",
-    submittedBy: userId,
-    createdAt: serverTimestamp()
+    youtubeId, title, creator, status: "pending",
+    submittedBy: userId, createdAt: serverTimestamp()
   });
-
   alert("Video submitted for review!");
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-// ── VIDEOS: LOAD ──
 function loadVideos() {
   const q = query(collection(db, "videos"), where("status", "==", "approved"));
   onSnapshot(q, snapshot => {
     const feed = document.getElementById("videos-feed");
     feed.innerHTML = "";
-
     if (snapshot.empty) {
-      feed.innerHTML = `<div class="empty-msg">No videos yet. Submit one!</div>`;
+      feed.innerHTML = `<div class="empty-msg" style="grid-column:1/-1">No videos yet. Submit one!</div>`;
       return;
     }
-
     snapshot.forEach(d => {
       const v = d.data();
       const div = document.createElement("div");
-      div.className = "video-card";
+      div.className = "yt-card";
       div.innerHTML = `
-        <iframe src="https://www.youtube.com/embed/${sanitize(v.youtubeId)}"
-          allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
-        </iframe>
-        <div class="video-info">
-          <h3>${sanitize(v.title)}</h3>
-          <small>🎬 ${sanitize(v.creator)}</small>
+        <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">
+          <img src="https://img.youtube.com/vi/${sanitize(v.youtubeId)}/hqdefault.jpg"
+            onerror="this.src='https://img.youtube.com/vi/${sanitize(v.youtubeId)}/mqdefault.jpg'">
+          <div class="yt-play">▶</div>
+        </div>
+        <div class="yt-player" style="display:none">
+          <iframe src="https://www.youtube.com/embed/${sanitize(v.youtubeId)}?autoplay=1"
+            allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+          </iframe>
+        </div>
+        <div class="yt-info">
+          <div class="yt-title">${sanitize(v.title)}</div>
+          <div class="yt-creator">🎬 ${sanitize(v.creator)}</div>
         </div>
       `;
       feed.appendChild(div);
@@ -425,36 +388,26 @@ function loadVideos() {
   }, err => console.error("Videos error:", err));
 }
 
-// ── GROUPS: SUBMIT ──
 window.submitGroup = async function() {
   const name = document.getElementById("modal-group-name").value.trim();
   const desc = document.getElementById("modal-group-desc").value.trim();
   const emoji = document.getElementById("modal-group-emoji").value.trim() || "👥";
-
   if (!name || !desc) return alert("Fill in all fields");
   if (name.length > 50) return alert("Name too long");
-
   await addDoc(collection(db, "groups"), {
-    name, desc, emoji,
-    createdBy: userId,
-    memberCount: 1,
-    createdAt: serverTimestamp()
+    name, desc, emoji, createdBy: userId,
+    memberCount: 1, createdAt: serverTimestamp()
   });
-
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-// ── GROUPS: OPEN ──
 window.openGroup = function(groupId, groupName) {
   currentGroupId = groupId;
   currentGroupName = groupName;
   document.getElementById("groups-list-view").style.display = "none";
   document.getElementById("group-detail-view").style.display = "block";
   document.getElementById("group-detail-header").innerHTML = `
-    <div class="card" style="margin-bottom:16px">
-      <h3>${sanitize(groupName)}</h3>
-    </div>
-  `;
+    <div class="card" style="margin-bottom:16px"><h3>${sanitize(groupName)}</h3></div>`;
   loadGroupPosts(groupId);
 };
 
@@ -465,39 +418,29 @@ window.closeGroup = function() {
   document.getElementById("group-detail-view").style.display = "none";
 };
 
-// ── GROUPS: SUBMIT POST ──
 window.submitGroupPost = async function() {
   const title = document.getElementById("modal-gpost-title").value.trim();
   const content = document.getElementById("modal-gpost-content").value.trim();
   const now = Date.now();
-
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Too long");
   if (containsBadWords(title) || containsBadWords(content)) return alert("Blocked");
-
   await addDoc(collection(db, "groups", currentGroupId, "posts"), {
-    title, content,
-    user: displayName,
-    ownerId: userId,
-    createdAt: serverTimestamp(),
-    likes: 0, likedBy: [], commentsCount: 0
+    title, content, user: displayName, ownerId: userId,
+    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0
   });
-
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-// ── GROUPS: LOAD LIST ──
 function loadGroups() {
   onSnapshot(collection(db, "groups"), snapshot => {
     const feed = document.getElementById("groups-feed");
     feed.innerHTML = "";
-
     if (snapshot.empty) {
       feed.innerHTML = `<div class="empty-msg">No groups yet. Create one!</div>`;
       return;
     }
-
     snapshot.forEach(d => {
       const g = d.data();
       const div = document.createElement("div");
@@ -517,7 +460,6 @@ function loadGroups() {
   }, err => console.error("Groups error:", err));
 }
 
-// ── GROUPS: LOAD POSTS ──
 window.likeGroupPost = async function(groupId, postId) {
   const ref = doc(db, "groups", groupId, "posts", postId);
   const snap = await getDoc(ref);
@@ -548,14 +490,11 @@ function loadGroupPosts(groupId) {
     const feed = document.getElementById("group-posts-feed");
     const now = Date.now();
     let posts = [];
-
     snapshot.forEach(d => {
       const raw = d.data();
       const p = {
-        title: raw.title || "",
-        content: raw.content || "",
-        user: raw.user || "Unknown",
-        ownerId: raw.ownerId || "",
+        title: raw.title || "", content: raw.content || "",
+        user: raw.user || "Unknown", ownerId: raw.ownerId || "",
         createdAt: raw.createdAt || null,
         likes: Number(raw.likes) || 0,
         likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
@@ -565,20 +504,17 @@ function loadGroupPosts(groupId) {
       const time = p.createdAt?.toMillis?.() || now;
       const hoursOld = (now - time) / (1000 * 60 * 60);
       const engagement = (p.likes * 3.0) + (p.commentsCount * 5.0);
-const viral = Math.log1p(p.likes + p.commentsCount * 2) * 3;
-const decay = Math.pow(hoursOld + 1, 0.4);
-const score = (engagement + viral) / decay;
+      const viral = Math.log1p(p.likes + p.commentsCount * 2) * 3;
+      const decay = Math.pow(hoursOld + 1, 0.4);
+      const score = (engagement + viral) / decay;
       posts.push({ id, ...p, score });
     });
-
     posts.sort((a, b) => b.score - a.score);
     feed.innerHTML = "";
-
     if (posts.length === 0) {
       feed.innerHTML = `<div class="empty-msg">No posts yet. Be the first!</div>`;
       return;
     }
-
     posts.forEach(post => {
       const div = document.createElement("div");
       div.className = "card";
@@ -598,7 +534,6 @@ const score = (engagement + viral) / decay;
         </div>
       `;
       feed.appendChild(div);
-
       const q = query(collection(db, "groups", groupId, "posts", post.id, "comments"), orderBy("time"));
       onSnapshot(q, snap => {
         const div2 = document.getElementById(`gcomments-${post.id}`);
@@ -614,35 +549,26 @@ const score = (engagement + viral) / decay;
   }, err => console.error("Group posts error:", err));
 }
 
-// ── CONTACT: SUBMIT ──
 window.submitContact = async function() {
   const name = document.getElementById("modal-contact-name").value.trim();
   const note = document.getElementById("modal-contact-note").value.trim();
   const number = document.getElementById("modal-contact-number").value.trim();
-  const email = document.getElementById("modal-contact-email").value.trim();
-
+  const textNumber = document.getElementById("modal-contact-text").value.trim();
   if (!name) return alert("Add a display name");
-  if (!number && !email && !note) return alert("Add at least a note, number, or email");
-
   await addDoc(collection(db, "contacts"), {
-    name, note, number, email,
-    createdAt: serverTimestamp()
+    name, note, number, textNumber, createdAt: serverTimestamp()
   });
-
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-// ── CONTACT: LOAD ──
 function loadContacts() {
   onSnapshot(collection(db, "contacts"), snapshot => {
     const feed = document.getElementById("contacts-feed");
     feed.innerHTML = "";
-
     if (snapshot.empty) {
       feed.innerHTML = `<div class="empty-msg">No contact cards yet.</div>`;
       return;
     }
-
     snapshot.forEach(d => {
       const c = d.data();
       const div = document.createElement("div");
@@ -651,8 +577,8 @@ function loadContacts() {
         <div class="contact-name">${sanitize(c.name)}</div>
         ${c.note ? `<div class="contact-note">${sanitize(c.note)}</div>` : ""}
         <div class="contact-btns">
-          ${c.number ? `<a href="tel:${sanitize(c.number)}" class="btn btn-call">📞 Call (*67 first)</a>` : ""}
-          ${c.email ? `<a href="mailto:${sanitize(c.email)}" class="btn btn-email">✉️ Email</a>` : ""}
+          ${c.number ? `<a href="tel:${sanitize(c.number)}" class="btn btn-call">📞 ${sanitize(c.number)}</a>` : ""}
+          ${c.textNumber ? `<a href="sms:${sanitize(c.textNumber)}" class="btn btn-primary">💬 ${sanitize(c.textNumber)}</a>` : ""}
         </div>
       `;
       feed.appendChild(div);
@@ -660,7 +586,6 @@ function loadContacts() {
   }, err => console.error("Contacts error:", err));
 }
 
-// ── BOOT ──
 getToken(appCheck, false).then(() => {
   console.log("App Check ready");
   const msg = document.getElementById("loading-msg");
@@ -675,7 +600,6 @@ getToken(appCheck, false).then(() => {
   if (msg) msg.textContent = "Security check failed. Please refresh.";
 });
 
-// ── EXPOSE ──
 window.switchTab = window.switchTab;
 window.openPostModal = window.openPostModal;
 window.closeModal = window.closeModal;
