@@ -229,7 +229,14 @@ function loadComments(postId, collectionPath) {
 }
 
 // ── FYP: LOAD ──
-function loadFYP() {
+async function loadFYP() {
+  // Load all content types first
+  const [videosSnap, groupsSnap, contactsSnap] = await Promise.all([
+    new Promise(res => onSnapshot(query(collection(db, "videos"), where("status", "==", "approved")), res)),
+    new Promise(res => onSnapshot(collection(db, "groups"), res)),
+    new Promise(res => onSnapshot(collection(db, "contacts"), res))
+  ]);
+
   onSnapshot(collection(db, "posts"), snapshot => {
     const feed = document.getElementById("fyp-feed");
     const now = Date.now();
@@ -260,7 +267,35 @@ function loadFYP() {
     posts.sort((a, b) => b.score - a.score);
     feed.innerHTML = "";
 
-    posts.forEach(post => {
+    if (posts.length === 0) {
+      feed.innerHTML = `<div class="empty-msg">No stories yet. Be the first to share!</div>`;
+      return;
+    }
+
+    // Build injected content pool
+    let injected = [];
+
+    videosSnap.forEach(d => {
+      const v = d.data();
+      injected.push({ type: "video", data: v });
+    });
+
+    groupsSnap.forEach(d => {
+      const g = d.data();
+      injected.push({ type: "group", data: { ...g, id: d.id } });
+    });
+
+    contactsSnap.forEach(d => {
+      const c = d.data();
+      injected.push({ type: "contact", data: c });
+    });
+
+    // Shuffle injected pool
+    injected.sort(() => Math.random() - 0.5);
+    let injectIndex = 0;
+
+    posts.forEach((post, i) => {
+      // Render post card
       const isOwner = post.ownerId === userId;
       const div = document.createElement("div");
       div.className = "card";
@@ -285,11 +320,57 @@ function loadFYP() {
       `;
       feed.appendChild(div);
       loadComments(post.id);
+
+      // Every 5 posts inject 1 card
+      if ((i + 1) % 5 === 0 && injected.length > 0) {
+        const item = injected[injectIndex % injected.length];
+        injectIndex++;
+        const injectDiv = document.createElement("div");
+
+        if (item.type === "video") {
+          injectDiv.className = "video-card";
+          injectDiv.innerHTML = `
+            <div style="background:#f0f2f5;padding:6px 12px;font-size:11px;color:#999;">📺 Recommended Video</div>
+            <iframe src="https://www.youtube.com/embed/${sanitize(item.data.youtubeId)}"
+              allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+            </iframe>
+            <div class="video-info">
+              <h3>${sanitize(item.data.title)}</h3>
+              <small>🎬 ${sanitize(item.data.creator)}</small>
+            </div>
+          `;
+        } else if (item.type === "group") {
+          injectDiv.className = "group-card";
+          injectDiv.onclick = () => {
+            window.switchTab("groups");
+            window.openGroup(item.data.id, item.data.name);
+          };
+          injectDiv.innerHTML = `
+            <div class="group-icon">${sanitize(item.data.emoji || "👥")}</div>
+            <div class="group-info">
+              <small style="color:#00bcd4;font-weight:600;">👥 Featured Group</small>
+              <h3>${sanitize(item.data.name)}</h3>
+              <p>${sanitize(item.data.desc)}</p>
+            </div>
+            <span>›</span>
+          `;
+        } else if (item.type === "contact") {
+          injectDiv.className = "contact-card";
+          injectDiv.innerHTML = `
+            <small style="color:#00bcd4;font-weight:600;">📞 Connect Anonymously</small>
+            <div class="contact-name">${sanitize(item.data.name)}</div>
+            ${item.data.note ? `<div class="contact-note">${sanitize(item.data.note)}</div>` : ""}
+            <div class="contact-btns">
+              ${item.data.number ? `<a href="tel:${sanitize(item.data.number)}" class="btn btn-call">📞 Call (*67 first)</a>` : ""}
+              ${item.data.email ? `<a href="mailto:${sanitize(item.data.email)}" class="btn btn-email">✉️ Email</a>` : ""}
+            </div>
+          `;
+        }
+
+        feed.appendChild(injectDiv);
+      }
     });
 
-    if (posts.length === 0) {
-      feed.innerHTML = `<div class="empty-msg">No stories yet. Be the first to share!</div>`;
-    }
   }, err => console.error("FYP error:", err));
 }
 
