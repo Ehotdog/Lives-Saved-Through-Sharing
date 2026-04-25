@@ -122,7 +122,7 @@ window.openPostModal = function() {
         <input type="text" id="modal-contact-name" placeholder="Display name">
         <textarea id="modal-contact-note" placeholder="A note about yourself..."></textarea>
         <input type="tel" id="modal-contact-number" placeholder="Phone number for calls (optional)">
-        <input type="tel" id="modal-contact-text" placeholder="Number to text (optional)">
+        <input type="tel" id="modal-contact-text" placeholder="Number to Text or Email (optional)">
         <button class="btn btn-primary" onclick="submitContact()">Post Card</button>
       </div>`;
   }
