@@ -28,6 +28,9 @@ if (!userId) { userId = crypto.randomUUID(); localStorage.setItem("userId", user
 let displayName = localStorage.getItem("displayName");
 if (!displayName) { displayName = "User" + Math.floor(Math.random() * 9999); localStorage.setItem("displayName", displayName); }
 
+const ADMIN_ID = "user_eb4fvj3kpy5";
+const isAdmin = userId === ADMIN_ID;
+
 let lastPostTime = parseInt(localStorage.getItem("lastPostTime")) || 0;
 let lastCommentTime = parseInt(localStorage.getItem("lastCommentTime")) || 0;
 
@@ -148,11 +151,23 @@ window.submitPost = async function() {
   if (containsBadWords(title) || containsBadWords(content)) return alert("Blocked");
   await addDoc(collection(db, "posts"), {
     title, content, user: displayName, ownerId: userId,
-    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0
+    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0, pinned: false
   });
   lastPostTime = now;
   localStorage.setItem("lastPostTime", now);
   document.getElementById("modal-overlay").classList.remove("open");
+};
+
+window.pinPost = async function(postId, currentlyPinned) {
+  await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
+};
+
+window.pinGroup = async function(groupId, currentlyPinned) {
+  await updateDoc(doc(db, "groups", groupId), { pinned: !currentlyPinned });
+};
+
+window.pinContact = async function(contactId, currentlyPinned) {
+  await updateDoc(doc(db, "contacts", contactId), { pinned: !currentlyPinned });
 };
 
 window.likePost = async function(postId) {
@@ -233,7 +248,8 @@ async function loadFYP() {
         createdAt: raw.createdAt || null,
         likes: Number(raw.likes) || 0,
         likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
-        commentsCount: Number(raw.commentsCount) || 0
+        commentsCount: Number(raw.commentsCount) || 0,
+        pinned: raw.pinned || false
       };
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
@@ -245,7 +261,12 @@ async function loadFYP() {
       posts.push({ id, ...p, score });
     });
 
-    posts.sort((a, b) => b.score - a.score);
+    posts.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return b.score - a.score;
+    });
+
     feed.innerHTML = "";
 
     if (posts.length === 0) {
@@ -263,8 +284,9 @@ async function loadFYP() {
     posts.forEach((post, i) => {
       const isOwner = post.ownerId === userId;
       const div = document.createElement("div");
-      div.className = "card";
+      div.className = post.pinned ? "card pinned-card" : "card";
       div.innerHTML = `
+        ${post.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
         <h3>${sanitize(post.title)}</h3>
         <p>${sanitize(post.content)}</p>
         <small>${sanitize(post.user)}</small>
@@ -273,6 +295,11 @@ async function loadFYP() {
           ${isOwner ? `
             <button class="btn btn-ghost" onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
             <button class="btn btn-danger" onclick="window.deletePost('${post.id}')">🗑</button>
+          ` : ""}
+          ${isAdmin ? `
+            <button class="btn ${post.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinPost('${post.id}', ${post.pinned})">
+              ${post.pinned ? "📌 Unpin" : "📌 Pin"}
+            </button>
           ` : ""}
         </div>
         <div class="comments-section">
@@ -311,7 +338,7 @@ async function loadFYP() {
           injectDiv.className = "group-card";
           injectDiv.onclick = () => { window.switchTab("groups"); window.openGroup(item.data.id, item.data.name); };
           injectDiv.innerHTML = `
-            <small style="color:#00bcd4;font-weight:600;display:block;margin-bottom:6px;">👥 Featured Group</small>
+            <small style="color:#00bcd4;font-weight:600;">👥 Featured Group</small>
             <div class="group-card-top">
               <span class="group-emoji">${sanitize(item.data.emoji || "👥")}</span>
               <span class="group-name">${sanitize(item.data.name)}</span>
@@ -394,7 +421,7 @@ window.submitGroup = async function() {
   if (name.length > 50) return alert("Name too long");
   await addDoc(collection(db, "groups"), {
     name, desc, emoji, createdBy: userId,
-    memberCount: 1, createdAt: serverTimestamp()
+    memberCount: 1, createdAt: serverTimestamp(), pinned: false
   });
   document.getElementById("modal-overlay").classList.remove("open");
 };
@@ -439,18 +466,28 @@ function loadGroups() {
       feed.innerHTML = `<div class="empty-msg">No groups yet. Create one!</div>`;
       return;
     }
-    snapshot.forEach(d => {
-      const g = d.data();
+    let groups = [];
+    snapshot.forEach(d => groups.push({ id: d.id, ...d.data() }));
+    groups.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return 0;
+    });
+    groups.forEach(g => {
       const div = document.createElement("div");
-      div.className = "group-card";
-      div.onclick = () => window.openGroup(d.id, g.name);
+      div.className = g.pinned ? "group-card pinned-card" : "group-card";
+      div.onclick = () => window.openGroup(g.id, g.name);
       div.innerHTML = `
+        ${g.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
         <div class="group-card-top">
           <span class="group-emoji">${sanitize(g.emoji || "👥")}</span>
           <span class="group-name">${sanitize(g.name)}</span>
         </div>
         <div class="group-desc">${sanitize(g.desc)}</div>
-        <div class="group-meta">${g.memberCount || 0} members</div>
+        <div class="group-meta" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>${g.memberCount || 0} members</span>
+          ${isAdmin ? `<button class="btn ${g.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="event.stopPropagation();window.pinGroup('${g.id}', ${g.pinned || false})">${g.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
+        </div>
       `;
       feed.appendChild(div);
     });
@@ -553,7 +590,7 @@ window.submitContact = async function() {
   const textNumber = document.getElementById("modal-contact-text").value.trim();
   if (!name) return alert("Add a display name");
   await addDoc(collection(db, "contacts"), {
-    name, note, number, textNumber, createdAt: serverTimestamp()
+    name, note, number, textNumber, createdAt: serverTimestamp(), pinned: false
   });
   document.getElementById("modal-overlay").classList.remove("open");
 };
@@ -566,16 +603,24 @@ function loadContacts() {
       feed.innerHTML = `<div class="empty-msg">No contact cards yet.</div>`;
       return;
     }
-    snapshot.forEach(d => {
-      const c = d.data();
+    let contacts = [];
+    snapshot.forEach(d => contacts.push({ id: d.id, ...d.data() }));
+    contacts.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return 0;
+    });
+    contacts.forEach(c => {
       const div = document.createElement("div");
-      div.className = "contact-card";
+      div.className = c.pinned ? "contact-card pinned-card" : "contact-card";
       div.innerHTML = `
+        ${c.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
         <div class="contact-name">${sanitize(c.name)}</div>
         ${c.note ? `<div class="contact-note">${sanitize(c.note)}</div>` : ""}
         <div class="contact-btns">
           ${c.number ? `<a href="tel:${sanitize(c.number)}" class="btn btn-call">📞 ${sanitize(c.number)}</a>` : ""}
           ${c.textNumber ? `<a href="sms:${sanitize(c.textNumber)}" class="btn btn-primary">💬 ${sanitize(c.textNumber)}</a>` : ""}
+          ${isAdmin ? `<button class="btn ${c.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinContact('${c.id}', ${c.pinned || false})">${c.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
         </div>
       `;
       feed.appendChild(div);
