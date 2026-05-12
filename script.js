@@ -122,7 +122,7 @@ window.openPostModal = function() {
         <input type="text" id="modal-contact-name" placeholder="Display name">
         <textarea id="modal-contact-note" placeholder="A note about yourself..."></textarea>
         <input type="tel" id="modal-contact-number" placeholder="Phone number for calls (optional)">
-        <input type="tel" id="modal-contact-text" placeholder="Number to Text or Email (optional)">
+        <input type="tel" id="modal-contact-text" placeholder="Number to text (optional)">
         <button class="btn btn-primary" onclick="submitContact()">Post Card</button>
       </div>`;
   }
@@ -292,9 +292,9 @@ async function loadFYP() {
         const injectDiv = document.createElement("div");
 
         if (item.type === "video") {
-          injectDiv.className = "video-card";
+          injectDiv.className = "card";
           injectDiv.innerHTML = `
-            <div style="background:#f0f2f5;padding:6px 12px;font-size:11px;color:#999;">📺 Recommended Video</div>
+            <small style="color:#00bcd4;font-weight:600;">📺 Recommended Video</small>
             <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">
               <img src="https://img.youtube.com/vi/${sanitize(item.data.youtubeId)}/hqdefault.jpg">
               <div class="yt-play">▶</div>
@@ -304,22 +304,20 @@ async function loadFYP() {
                 allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
               </iframe>
             </div>
-            <div class="yt-info">
-              <div class="yt-title">${sanitize(item.data.title)}</div>
-              <div class="yt-creator">🎬 ${sanitize(item.data.creator)}</div>
-            </div>
+            <div class="yt-title">${sanitize(item.data.title)}</div>
+            <div class="yt-creator">🎬 ${sanitize(item.data.creator)}</div>
           `;
         } else if (item.type === "group") {
           injectDiv.className = "group-card";
           injectDiv.onclick = () => { window.switchTab("groups"); window.openGroup(item.data.id, item.data.name); };
           injectDiv.innerHTML = `
-            <div class="group-icon">${sanitize(item.data.emoji || "👥")}</div>
-            <div class="group-info">
-              <small style="color:#00bcd4;font-weight:600;">👥 Featured Group</small>
-              <h3>${sanitize(item.data.name)}</h3>
-              <p>${sanitize(item.data.desc)}</p>
+            <small style="color:#00bcd4;font-weight:600;display:block;margin-bottom:6px;">👥 Featured Group</small>
+            <div class="group-card-top">
+              <span class="group-emoji">${sanitize(item.data.emoji || "👥")}</span>
+              <span class="group-name">${sanitize(item.data.name)}</span>
             </div>
-            <span>›</span>
+            <div class="group-desc">${sanitize(item.data.desc)}</div>
+            <div class="group-meta">${item.data.memberCount || 0} members</div>
           `;
         } else if (item.type === "contact") {
           injectDiv.className = "contact-card";
@@ -447,13 +445,12 @@ function loadGroups() {
       div.className = "group-card";
       div.onclick = () => window.openGroup(d.id, g.name);
       div.innerHTML = `
-        <div class="group-icon">${sanitize(g.emoji || "👥")}</div>
-        <div class="group-info">
-          <h3>${sanitize(g.name)}</h3>
-          <p>${sanitize(g.desc)}</p>
-          <small>${g.memberCount || 0} members</small>
+        <div class="group-card-top">
+          <span class="group-emoji">${sanitize(g.emoji || "👥")}</span>
+          <span class="group-name">${sanitize(g.name)}</span>
         </div>
-        <span>›</span>
+        <div class="group-desc">${sanitize(g.desc)}</div>
+        <div class="group-meta">${g.memberCount || 0} members</div>
       `;
       feed.appendChild(div);
     });
