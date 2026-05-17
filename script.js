@@ -198,7 +198,8 @@ window.editPost = async function(id, oldTitle, oldContent) {
   const ref = doc(db, "posts", id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
-  if (snap.data().ownerId !== userId) return alert("Not your post");
+  const data = snap.data();
+  if (data.ownerId !== userId && !isAdmin) return alert("Not your post");
   const newTitle = prompt("Edit title:", oldTitle);
   const newContent = prompt("Edit content:", oldContent);
   if (!newTitle || !newContent) return;
@@ -209,7 +210,8 @@ window.deletePost = async function(id) {
   const ref = doc(db, "posts", id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
-  if (snap.data().ownerId !== userId) return alert("Not your post");
+  const data = snap.data();
+  if (data.ownerId !== userId && !isAdmin) return alert("Not your post");
   if (!confirm("Delete?")) return;
   await deleteDoc(ref);
 };
@@ -292,10 +294,10 @@ async function loadFYP() {
         <small>${sanitize(post.user)}</small>
         <div class="card-actions">
           <button class="btn btn-ghost" onclick="window.likePost('${post.id}')">♡ ${post.likes}</button>
-          ${isOwner ? `
-            <button class="btn btn-ghost" onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
-            <button class="btn btn-danger" onclick="window.deletePost('${post.id}')">🗑</button>
-          ` : ""}
+         ${isOwner || isAdmin ? `
+  <button class="btn btn-ghost" onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
+  <button class="btn btn-danger" onclick="window.deletePost('${post.id}')">🗑</button>
+` : ""}
           ${isAdmin ? `
             <button class="btn ${post.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinPost('${post.id}', ${post.pinned})">
               ${post.pinned ? "📌 Unpin" : "📌 Pin"}
