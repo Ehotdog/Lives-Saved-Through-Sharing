@@ -38,15 +38,72 @@ let currentTab = "fyp";
 let currentGroupId = null;
 let currentGroupName = null;
 
+// ── USER INTEREST TRACKING ──
+let userInterests = JSON.parse(localStorage.getItem("userInterests") || "{}");
+
+function trackInterest(text) {
+  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+  words.forEach(w => {
+    userInterests[w] = (userInterests[w] || 0) + 1;
+  });
+  localStorage.setItem("userInterests", JSON.stringify(userInterests));
+}
+
+function getInterestScore(text) {
+  if (!text) return 0;
+  const words = text.toLowerCase().split(/\s+/);
+  let score = 0;
+  words.forEach(w => {
+    if (userInterests[w]) score += userInterests[w];
+  });
+  return score;
+}
+
+// ── MODERATION ──
+const BANNED_WORDS = [
+  "spam", "scam", "porn", "xxx", "onlyfans", "nude", "nudes",
+  "hack", "hacker", "free money", "click here", "buy now",
+  "badword1", "badword2"
+];
+
+const SPAM_PATTERNS = [
+  /(.)\1{4,}/,          // repeated characters: aaaaa
+  /(https?:\/\/\S+)/i,  // links in posts
+  /[A-Z\s]{20,}/,       // excessive caps
+  /\b\d{10,}\b/,        // long number strings
+];
+
+function moderateContent(text) {
+  const lower = text.toLowerCase();
+
+  // Check banned words
+  for (const word of BANNED_WORDS) {
+    if (lower.includes(word)) {
+      return { allowed: false, reason: "contains prohibited content", autoDelete: true };
+    }
+  }
+
+  // Check spam patterns
+  for (const pattern of SPAM_PATTERNS) {
+    if (pattern.test(text)) {
+      return { allowed: false, reason: "looks like spam", autoDelete: true };
+    }
+  }
+
+  // Borderline — too short or too many symbols
+  const symbolRatio = (text.match(/[^a-zA-Z0-9\s]/g) || []).length / text.length;
+  if (symbolRatio > 0.4 && text.length > 10) {
+    return { allowed: false, reason: "unusual characters", autoDelete: false };
+  }
+
+  return { allowed: true };
+}
+
+// ── UTILS ──
 function sanitize(str) {
   const div = document.createElement("div");
   div.textContent = str || "";
   return div.innerHTML;
-}
-
-function containsBadWords(text) {
-  const banned = ["spam", "badword1", "badword2"];
-  return banned.some(w => text.toLowerCase().includes(w));
 }
 
 function extractYoutubeId(url) {
@@ -54,6 +111,7 @@ function extractYoutubeId(url) {
   return match ? match[1] : null;
 }
 
+// ── TAB SWITCHING ──
 window.switchTab = function(tab) {
   currentTab = tab;
   document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
@@ -62,6 +120,7 @@ window.switchTab = function(tab) {
   document.querySelectorAll(".tab-btn")[["fyp","videos","groups","contact"].indexOf(tab)].classList.add("active");
 };
 
+// ── MODAL ──
 window.openPostModal = function() {
   const modal = document.getElementById("modal-content");
   const overlay = document.getElementById("modal-overlay");
@@ -122,10 +181,10 @@ window.openPostModal = function() {
         <button class="modal-close" onclick="closeModal()">✕</button>
       </div>
       <div class="form-group">
-        <input type="text" id="modal-contact-name" placeholder="Display Name">
+        <input type="text" id="modal-contact-name" placeholder="Display name">
         <textarea id="modal-contact-note" placeholder="A note about yourself..."></textarea>
-        <input type="tel" id="modal-contact-number" placeholder="Phone Number For Calls (optional)">
-        <input type="tel" id="modal-contact-text" placeholder="Number To Text or Email (optional)">
+        <input type="tel" id="modal-contact-number" placeholder="Phone number for calls (optional)">
+        <input type="tel" id="modal-contact-text" placeholder="Number to text (optional)">
         <button class="btn btn-primary" onclick="submitContact()">Post Card</button>
       </div>`;
   }
@@ -140,45 +199,69 @@ window.closeModal = function(e) {
   }
 };
 
+// ── SUBMIT POST ──
 window.submitPost = async function() {
   const title = document.getElementById("modal-title").value.trim();
   const content = document.getElementById("modal-content-text").value.trim();
   const now = Date.now();
+
   if (now - lastPostTime < 30000) return alert("Wait before posting again");
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Story too long");
-  if (containsBadWords(title) || containsBadWords(content)) return alert("Blocked");
+
+  const titleCheck = moderateContent(title);
+  const contentCheck = moderateContent(content);
+
+  if (!titleCheck.allowed) {
+    if (titleCheck.autoDelete) return alert("Post blocked: " + titleCheck.reason);
+    await addDoc(collection(db, "posts"), {
+      title, content, user: displayName, ownerId: userId,
+      createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
+      pinned: false, flagged: true, flagReason: contentCheck.reason
+    });
+    lastPostTime = now;
+    localStorage.setItem("lastPostTime", now);
+    document.getElementById("modal-overlay").classList.remove("open");
+    return alert("Your post has been submitted for review.");
+  }
+
+  if (!contentCheck.allowed) {
+    if (contentCheck.autoDelete) return alert("Post blocked: " + contentCheck.reason);
+    await addDoc(collection(db, "posts"), {
+      title, content, user: displayName, ownerId: userId,
+      createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
+      pinned: false, flagged: true, flagReason: contentCheck.reason
+    });
+    lastPostTime = now;
+    localStorage.setItem("lastPostTime", now);
+    document.getElementById("modal-overlay").classList.remove("open");
+    return alert("Your post has been submitted for review.");
+  }
+
   await addDoc(collection(db, "posts"), {
     title, content, user: displayName, ownerId: userId,
-    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0, pinned: false
+    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
+    pinned: false, flagged: false
   });
+
   lastPostTime = now;
   localStorage.setItem("lastPostTime", now);
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-window.pinPost = async function(postId, currentlyPinned) {
-  await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
-};
-
-window.pinGroup = async function(groupId, currentlyPinned) {
-  await updateDoc(doc(db, "groups", groupId), { pinned: !currentlyPinned });
-};
-
-window.pinContact = async function(contactId, currentlyPinned) {
-  await updateDoc(doc(db, "contacts", contactId), { pinned: !currentlyPinned });
-};
-
-window.likePost = async function(postId) {
+// ── LIKE ──
+window.likePost = async function(postId, title, content) {
   const ref = doc(db, "posts", postId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
   const data = snap.data();
   if ((data.likedBy || []).includes(userId)) return alert("Already liked");
   await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  trackInterest((title || "") + " " + (content || ""));
 };
 
+// ── COMMENT ──
 window.addComment = async function(postId) {
   const input = document.getElementById(`comment-${postId}`);
   const text = input.value.trim();
@@ -186,14 +269,36 @@ window.addComment = async function(postId) {
   if (now - lastCommentTime < 10000) return alert("Slow down");
   if (!text) return;
   if (text.length > 200) return alert("Too long");
-  if (containsBadWords(text)) return alert("Blocked");
-  await addDoc(collection(db, "posts", postId, "comments"), { text, user: displayName, time: now });
+
+  const check = moderateContent(text);
+  if (!check.allowed) {
+    if (check.autoDelete) return alert("Comment blocked: " + check.reason);
+    await addDoc(collection(db, "posts", postId, "comments"), {
+      text, user: displayName, time: now, flagged: true, flagReason: check.reason
+    });
+    input.value = "";
+    lastCommentTime = now;
+    localStorage.setItem("lastCommentTime", now);
+    return alert("Comment submitted for review.");
+  }
+
+  await addDoc(collection(db, "posts", postId, "comments"), {
+    text, user: displayName, time: now, flagged: false
+  });
   await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
   lastCommentTime = now;
   localStorage.setItem("lastCommentTime", now);
   input.value = "";
 };
 
+// ── REPORT ──
+window.reportPost = async function(postId) {
+  if (!confirm("Report this post as inappropriate?")) return;
+  await updateDoc(doc(db, "posts", postId), { flagged: true, flagReason: "user report" });
+  alert("Post reported. Thank you.");
+};
+
+// ── EDIT / DELETE ──
 window.editPost = async function(id, oldTitle, oldContent) {
   const ref = doc(db, "posts", id);
   const snap = await getDoc(ref);
@@ -216,6 +321,25 @@ window.deletePost = async function(id) {
   await deleteDoc(ref);
 };
 
+// ── PIN ──
+window.pinPost = async function(postId, currentlyPinned) {
+  await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
+};
+
+window.pinGroup = async function(groupId, currentlyPinned) {
+  await updateDoc(doc(db, "groups", groupId), { pinned: !currentlyPinned });
+};
+
+window.pinContact = async function(contactId, currentlyPinned) {
+  await updateDoc(doc(db, "contacts", contactId), { pinned: !currentlyPinned });
+};
+
+// ── UNFLAG (admin) ──
+window.unflagPost = async function(postId) {
+  await updateDoc(doc(db, "posts", postId), { flagged: false, flagReason: "" });
+};
+
+// ── COMMENTS LOADER ──
 function loadComments(postId) {
   const q = query(collection(db, "posts", postId, "comments"), orderBy("time"));
   onSnapshot(q, snapshot => {
@@ -224,12 +348,17 @@ function loadComments(postId) {
     let html = "";
     snapshot.forEach(d => {
       const c = d.data();
-      html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
+      if (c.flagged && !isAdmin) return;
+      html += `<p class="comment-item">
+        ${c.flagged ? `<span style="color:#ff9800;font-size:11px;">⚠️ Under review</span><br>` : ""}
+        <b>${sanitize(c.user)}:</b> ${sanitize(c.text)}
+      </p>`;
     });
     div.innerHTML = html;
   });
 }
 
+// ── FYP ──
 async function loadFYP() {
   const [videosSnap, groupsSnap, contactsSnap] = await Promise.all([
     new Promise(res => onSnapshot(query(collection(db, "videos"), where("status", "==", "approved")), res)),
@@ -244,6 +373,7 @@ async function loadFYP() {
 
     snapshot.forEach(d => {
       const raw = d.data();
+      if (raw.flagged && !isAdmin) return;
       const p = {
         title: raw.title || "", content: raw.content || "",
         user: raw.user || "Unknown", ownerId: raw.ownerId || "",
@@ -251,7 +381,9 @@ async function loadFYP() {
         likes: Number(raw.likes) || 0,
         likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
         commentsCount: Number(raw.commentsCount) || 0,
-        pinned: raw.pinned || false
+        pinned: raw.pinned || false,
+        flagged: raw.flagged || false,
+        flagReason: raw.flagReason || ""
       };
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
@@ -259,7 +391,8 @@ async function loadFYP() {
       const engagement = (p.likes * 3.0) + (p.commentsCount * 5.0);
       const viral = Math.log1p(p.likes + p.commentsCount * 2) * 3;
       const decay = Math.pow(hoursOld + 1, 0.4);
-      const score = (engagement + viral) / decay;
+      const interestBoost = getInterestScore(p.title + " " + p.content) * 0.5;
+      const score = (engagement + viral) / decay + interestBoost;
       posts.push({ id, ...p, score });
     });
 
@@ -289,15 +422,17 @@ async function loadFYP() {
       div.className = post.pinned ? "card pinned-card" : "card";
       div.innerHTML = `
         ${post.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
+        ${post.flagged && isAdmin ? `<div style="background:#fff3e0;padding:6px 10px;border-radius:8px;font-size:12px;color:#f57c00;">⚠️ Flagged: ${sanitize(post.flagReason)} <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;" onclick="window.unflagPost('${post.id}')">Approve</button></div>` : ""}
         <h3>${sanitize(post.title)}</h3>
         <p>${sanitize(post.content)}</p>
         <small>${sanitize(post.user)}</small>
         <div class="card-actions">
-          <button class="btn btn-ghost" onclick="window.likePost('${post.id}')">♡ ${post.likes}</button>
-         ${isOwner || isAdmin ? `
-  <button class="btn btn-ghost" onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
-  <button class="btn btn-danger" onclick="window.deletePost('${post.id}')">🗑</button>
-` : ""}
+          <button class="btn btn-ghost" onclick="window.likePost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">♡ ${post.likes}</button>
+          <button class="btn btn-ghost" onclick="window.reportPost('${post.id}')">🚩</button>
+          ${isOwner || isAdmin ? `
+            <button class="btn btn-ghost" onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
+            <button class="btn btn-danger" onclick="window.deletePost('${post.id}')">🗑</button>
+          ` : ""}
           ${isAdmin ? `
             <button class="btn ${post.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinPost('${post.id}', ${post.pinned})">
               ${post.pinned ? "📌 Unpin" : "📌 Pin"}
@@ -366,6 +501,7 @@ async function loadFYP() {
   }, err => console.error("FYP error:", err));
 }
 
+// ── VIDEOS ──
 window.submitVideo = async function() {
   const url = document.getElementById("modal-video-url").value.trim();
   const title = document.getElementById("modal-video-title").value.trim();
@@ -390,12 +526,21 @@ function loadVideos() {
       feed.innerHTML = `<div class="empty-msg" style="grid-column:1/-1">No videos yet. Submit one!</div>`;
       return;
     }
-    snapshot.forEach(d => {
-      const v = d.data();
+    let videos = [];
+    snapshot.forEach(d => videos.push({ id: d.id, ...d.data() }));
+
+    // Sort by interest score
+    videos.sort((a, b) => {
+      const scoreA = getInterestScore(a.title + " " + (a.creator || ""));
+      const scoreB = getInterestScore(b.title + " " + (b.creator || ""));
+      return scoreB - scoreA;
+    });
+
+    videos.forEach(v => {
       const div = document.createElement("div");
       div.className = "yt-card";
       div.innerHTML = `
-        <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none'">
+        <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none';trackInterest('${sanitize(v.title)}')">
           <img src="https://img.youtube.com/vi/${sanitize(v.youtubeId)}/hqdefault.jpg"
             onerror="this.src='https://img.youtube.com/vi/${sanitize(v.youtubeId)}/mqdefault.jpg'">
           <div class="yt-play">▶</div>
@@ -415,6 +560,7 @@ function loadVideos() {
   }, err => console.error("Videos error:", err));
 }
 
+// ── GROUPS ──
 window.submitGroup = async function() {
   const name = document.getElementById("modal-group-name").value.trim();
   const desc = document.getElementById("modal-group-desc").value.trim();
@@ -431,6 +577,7 @@ window.submitGroup = async function() {
 window.openGroup = function(groupId, groupName) {
   currentGroupId = groupId;
   currentGroupName = groupName;
+  trackInterest(groupName);
   document.getElementById("groups-list-view").style.display = "none";
   document.getElementById("group-detail-view").style.display = "block";
   document.getElementById("group-detail-header").innerHTML = `
@@ -452,10 +599,14 @@ window.submitGroupPost = async function() {
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Too long");
-  if (containsBadWords(title) || containsBadWords(content)) return alert("Blocked");
+
+  const check = moderateContent(title + " " + content);
+  if (!check.allowed && check.autoDelete) return alert("Post blocked: " + check.reason);
+
   await addDoc(collection(db, "groups", currentGroupId, "posts"), {
     title, content, user: displayName, ownerId: userId,
-    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0
+    createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
+    flagged: !check.allowed
   });
   document.getElementById("modal-overlay").classList.remove("open");
 };
@@ -470,11 +621,16 @@ function loadGroups() {
     }
     let groups = [];
     snapshot.forEach(d => groups.push({ id: d.id, ...d.data() }));
+
+    // Sort pinned first then by interest score
     groups.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      return 0;
+      const scoreA = getInterestScore(a.name + " " + a.desc);
+      const scoreB = getInterestScore(b.name + " " + b.desc);
+      return scoreB - scoreA;
     });
+
     groups.forEach(g => {
       const div = document.createElement("div");
       div.className = g.pinned ? "group-card pinned-card" : "group-card";
@@ -486,7 +642,7 @@ function loadGroups() {
           <span class="group-name">${sanitize(g.name)}</span>
         </div>
         <div class="group-desc">${sanitize(g.desc)}</div>
-        <div class="group-meta" style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="group-meta">
           <span>${g.memberCount || 0} members</span>
           ${isAdmin ? `<button class="btn ${g.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="event.stopPropagation();window.pinGroup('${g.id}', ${g.pinned || false})">${g.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
         </div>
@@ -503,6 +659,7 @@ window.likeGroupPost = async function(groupId, postId) {
   const data = snap.data();
   if ((data.likedBy || []).includes(userId)) return alert("Already liked");
   await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  trackInterest((data.title || "") + " " + (data.content || ""));
 };
 
 window.addGroupComment = async function(groupId, postId) {
@@ -512,8 +669,12 @@ window.addGroupComment = async function(groupId, postId) {
   if (now - lastCommentTime < 10000) return alert("Slow down");
   if (!text) return;
   if (text.length > 200) return alert("Too long");
+
+  const check = moderateContent(text);
+  if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
+
   await addDoc(collection(db, "groups", groupId, "posts", postId, "comments"), {
-    text, user: displayName, time: now
+    text, user: displayName, time: now, flagged: !check.allowed
   });
   await updateDoc(doc(db, "groups", groupId, "posts", postId), { commentsCount: increment(1) });
   lastCommentTime = now;
@@ -528,6 +689,7 @@ function loadGroupPosts(groupId) {
     let posts = [];
     snapshot.forEach(d => {
       const raw = d.data();
+      if (raw.flagged && !isAdmin) return;
       const p = {
         title: raw.title || "", content: raw.content || "",
         user: raw.user || "Unknown", ownerId: raw.ownerId || "",
@@ -577,6 +739,7 @@ function loadGroupPosts(groupId) {
         let html = "";
         snap.forEach(d => {
           const c = d.data();
+          if (c.flagged && !isAdmin) return;
           html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
         });
         div2.innerHTML = html;
@@ -585,6 +748,7 @@ function loadGroupPosts(groupId) {
   }, err => console.error("Group posts error:", err));
 }
 
+// ── CONTACTS ──
 window.submitContact = async function() {
   const name = document.getElementById("modal-contact-name").value.trim();
   const note = document.getElementById("modal-contact-note").value.trim();
@@ -607,11 +771,16 @@ function loadContacts() {
     }
     let contacts = [];
     snapshot.forEach(d => contacts.push({ id: d.id, ...d.data() }));
+
+    // Sort pinned first then by interest score
     contacts.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      return 0;
+      const scoreA = getInterestScore(a.name + " " + (a.note || ""));
+      const scoreB = getInterestScore(b.name + " " + (b.note || ""));
+      return scoreB - scoreA;
     });
+
     contacts.forEach(c => {
       const div = document.createElement("div");
       div.className = c.pinned ? "contact-card pinned-card" : "contact-card";
@@ -630,6 +799,7 @@ function loadContacts() {
   }, err => console.error("Contacts error:", err));
 }
 
+// ── BOOT ──
 getToken(appCheck, false).then(() => {
   console.log("App Check ready");
   const msg = document.getElementById("loading-msg");
@@ -647,3 +817,4 @@ getToken(appCheck, false).then(() => {
 window.switchTab = window.switchTab;
 window.openPostModal = window.openPostModal;
 window.closeModal = window.closeModal;
+window.trackInterest = trackInterest;
