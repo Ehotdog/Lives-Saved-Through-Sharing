@@ -292,10 +292,51 @@ window.addComment = async function(postId) {
 };
 
 // ── REPORT ──
-window.reportPost = async function(postId) {
-  if (!confirm("Report this post as inappropriate?")) return;
-  await updateDoc(doc(db, "posts", postId), { flagged: true, flagReason: "user report" });
-  alert("Post reported. Thank you.");
+window.reportPost = function(postId) {
+  const modal = document.getElementById("modal-content");
+  const overlay = document.getElementById("modal-overlay");
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h2>Report Post</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <p style="font-size:14px;color:#666;margin-bottom:14px;">Why are you reporting this post?</p>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Spam or self-promotion"> Spam or self-promotion
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Hate speech or harassment"> Hate speech or harassment
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Misinformation"> Misinformation
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Inappropriate content"> Inappropriate content
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Dangerous or harmful"> Dangerous or harmful
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Other"> Other
+      </label>
+      <button class="btn btn-danger" style="margin-top:6px;" onclick="window.submitReport('${postId}')">Submit Report</button>
+    </div>
+  `;
+  overlay.classList.add("open");
+};
+
+window.submitReport = async function(postId) {
+  const selected = document.querySelector('input[name="report-reason"]:checked');
+  if (!selected) return alert("Please select a reason");
+  const reason = selected.value;
+  await updateDoc(doc(db, "posts", postId), {
+    flagged: true,
+    flagReason: reason,
+    reportedBy: arrayUnion(userId)
+  });
+  document.getElementById("modal-overlay").classList.remove("open");
+  alert("Report submitted. Thank you.");
 };
 
 // ── EDIT / DELETE ──
