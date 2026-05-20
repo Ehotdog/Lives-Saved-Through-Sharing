@@ -43,9 +43,7 @@ let userInterests = JSON.parse(localStorage.getItem("userInterests") || "{}");
 
 function trackInterest(text) {
   const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-  words.forEach(w => {
-    userInterests[w] = (userInterests[w] || 0) + 1;
-  });
+  words.forEach(w => { userInterests[w] = (userInterests[w] || 0) + 1; });
   localStorage.setItem("userInterests", JSON.stringify(userInterests));
 }
 
@@ -53,9 +51,7 @@ function getInterestScore(text) {
   if (!text) return 0;
   const words = text.toLowerCase().split(/\s+/);
   let score = 0;
-  words.forEach(w => {
-    if (userInterests[w]) score += userInterests[w];
-  });
+  words.forEach(w => { if (userInterests[w]) score += userInterests[w]; });
   return score;
 }
 
@@ -67,35 +63,22 @@ const BANNED_WORDS = [
 ];
 
 const SPAM_PATTERNS = [
-  /(.)\1{4,}/,          // repeated characters: aaaaa
-  /(https?:\/\/\S+)/i,  // links in posts
-  /[A-Z\s]{20,}/,       // excessive caps
-  /\b\d{10,}\b/,        // long number strings
+  /(.)\1{4,}/,
+  /(https?:\/\/\S+)/i,
+  /[A-Z\s]{20,}/,
+  /\b\d{10,}\b/,
 ];
 
 function moderateContent(text) {
   const lower = text.toLowerCase();
-
-  // Check banned words
   for (const word of BANNED_WORDS) {
-    if (lower.includes(word)) {
-      return { allowed: false, reason: "contains prohibited content", autoDelete: true };
-    }
+    if (lower.includes(word)) return { allowed: false, reason: "contains prohibited content", autoDelete: true };
   }
-
-  // Check spam patterns
   for (const pattern of SPAM_PATTERNS) {
-    if (pattern.test(text)) {
-      return { allowed: false, reason: "looks like spam", autoDelete: true };
-    }
+    if (pattern.test(text)) return { allowed: false, reason: "looks like spam", autoDelete: true };
   }
-
-  // Borderline — too short or too many symbols
   const symbolRatio = (text.match(/[^a-zA-Z0-9\s]/g) || []).length / text.length;
-  if (symbolRatio > 0.4 && text.length > 10) {
-    return { allowed: false, reason: "unusual characters", autoDelete: false };
-  }
-
+  if (symbolRatio > 0.4 && text.length > 10) return { allowed: false, reason: "unusual characters", autoDelete: false };
   return { allowed: true };
 }
 
@@ -204,7 +187,6 @@ window.submitPost = async function() {
   const title = document.getElementById("modal-title").value.trim();
   const content = document.getElementById("modal-content-text").value.trim();
   const now = Date.now();
-
   if (now - lastPostTime < 30000) return alert("Wait before posting again");
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
@@ -213,82 +195,22 @@ window.submitPost = async function() {
   const titleCheck = moderateContent(title);
   const contentCheck = moderateContent(content);
 
-  if (!titleCheck.allowed) {
-    if (titleCheck.autoDelete) return alert("Post blocked: " + titleCheck.reason);
-    await addDoc(collection(db, "posts"), {
-      title, content, user: displayName, ownerId: userId,
-      createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
-      pinned: false, flagged: true, flagReason: contentCheck.reason
-    });
-    lastPostTime = now;
-    localStorage.setItem("lastPostTime", now);
-    document.getElementById("modal-overlay").classList.remove("open");
-    return alert("Your post has been submitted for review.");
-  }
+  if (!titleCheck.allowed && titleCheck.autoDelete) return alert("Post blocked: " + titleCheck.reason);
+  if (!contentCheck.allowed && contentCheck.autoDelete) return alert("Post blocked: " + contentCheck.reason);
 
-  if (!contentCheck.allowed) {
-    if (contentCheck.autoDelete) return alert("Post blocked: " + contentCheck.reason);
-    await addDoc(collection(db, "posts"), {
-      title, content, user: displayName, ownerId: userId,
-      createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
-      pinned: false, flagged: true, flagReason: contentCheck.reason
-    });
-    lastPostTime = now;
-    localStorage.setItem("lastPostTime", now);
-    document.getElementById("modal-overlay").classList.remove("open");
-    return alert("Your post has been submitted for review.");
-  }
+  const flagged = !titleCheck.allowed || !contentCheck.allowed;
+  const flagReason = !titleCheck.allowed ? titleCheck.reason : contentCheck.reason;
 
   await addDoc(collection(db, "posts"), {
     title, content, user: displayName, ownerId: userId,
     createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
-    pinned: false, flagged: false
+    pinned: false, flagged, flagReason: flagged ? flagReason : ""
   });
 
   lastPostTime = now;
   localStorage.setItem("lastPostTime", now);
   document.getElementById("modal-overlay").classList.remove("open");
-};
-
-// ── LIKE ──
-window.likePost = async function(postId, title, content) {
-  const ref = doc(db, "posts", postId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return;
-  const data = snap.data();
-  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
-  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
-  trackInterest((title || "") + " " + (content || ""));
-};
-
-// ── COMMENT ──
-window.addComment = async function(postId) {
-  const input = document.getElementById(`comment-${postId}`);
-  const text = input.value.trim();
-  const now = Date.now();
-  if (now - lastCommentTime < 10000) return alert("Slow down");
-  if (!text) return;
-  if (text.length > 200) return alert("Too long");
-
-  const check = moderateContent(text);
-  if (!check.allowed) {
-    if (check.autoDelete) return alert("Comment blocked: " + check.reason);
-    await addDoc(collection(db, "posts", postId, "comments"), {
-      text, user: displayName, time: now, flagged: true, flagReason: check.reason
-    });
-    input.value = "";
-    lastCommentTime = now;
-    localStorage.setItem("lastCommentTime", now);
-    return alert("Comment submitted for review.");
-  }
-
-  await addDoc(collection(db, "posts", postId, "comments"), {
-    text, user: displayName, time: now, flagged: false
-  });
-  await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
-  lastCommentTime = now;
-  localStorage.setItem("lastCommentTime", now);
-  input.value = "";
+  if (flagged) alert("Your post has been submitted for review.");
 };
 
 // ── REPORT ──
@@ -329,14 +251,45 @@ window.reportPost = function(postId) {
 window.submitReport = async function(postId) {
   const selected = document.querySelector('input[name="report-reason"]:checked');
   if (!selected) return alert("Please select a reason");
-  const reason = selected.value;
   await updateDoc(doc(db, "posts", postId), {
     flagged: true,
-    flagReason: reason,
+    flagReason: selected.value,
     reportedBy: arrayUnion(userId)
   });
   document.getElementById("modal-overlay").classList.remove("open");
   alert("Report submitted. Thank you.");
+};
+
+// ── LIKE ──
+window.likePost = async function(postId, title, content) {
+  const ref = doc(db, "posts", postId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
+  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  trackInterest((title || "") + " " + (content || ""));
+};
+
+// ── COMMENT ──
+window.addComment = async function(postId) {
+  const input = document.getElementById(`comment-${postId}`);
+  const text = input.value.trim();
+  const now = Date.now();
+  if (now - lastCommentTime < 10000) return alert("Slow down");
+  if (!text) return;
+  if (text.length > 200) return alert("Too long");
+  const check = moderateContent(text);
+  if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
+  await addDoc(collection(db, "posts", postId, "comments"), {
+    text, user: displayName, time: now, flagged: !check.allowed
+  });
+  if (check.allowed) {
+    await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
+  }
+  lastCommentTime = now;
+  localStorage.setItem("lastCommentTime", now);
+  input.value = "";
 };
 
 // ── EDIT / DELETE ──
@@ -362,6 +315,10 @@ window.deletePost = async function(id) {
   await deleteDoc(ref);
 };
 
+window.adminDeletePost = async function(id) {
+  await deleteDoc(doc(db, "posts", id));
+};
+
 // ── PIN ──
 window.pinPost = async function(postId, currentlyPinned) {
   await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
@@ -375,7 +332,7 @@ window.pinContact = async function(contactId, currentlyPinned) {
   await updateDoc(doc(db, "contacts", contactId), { pinned: !currentlyPinned });
 };
 
-// ── UNFLAG (admin) ──
+// ── UNFLAG ──
 window.unflagPost = async function(postId) {
   await updateDoc(doc(db, "posts", postId), { flagged: false, flagReason: "" });
 };
@@ -390,10 +347,7 @@ function loadComments(postId) {
     snapshot.forEach(d => {
       const c = d.data();
       if (c.flagged && !isAdmin) return;
-      html += `<p class="comment-item">
-        ${c.flagged ? `<span style="color:#ff9800;font-size:11px;">⚠️ Under review</span><br>` : ""}
-        <b>${sanitize(c.user)}:</b> ${sanitize(c.text)}
-      </p>`;
+      html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
     });
     div.innerHTML = html;
   });
@@ -463,7 +417,15 @@ async function loadFYP() {
       div.className = post.pinned ? "card pinned-card" : "card";
       div.innerHTML = `
         ${post.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
-        ${post.flagged && isAdmin ? `<div style="background:#fff3e0;padding:6px 10px;border-radius:8px;font-size:12px;color:#f57c00;">⚠️ Flagged: ${sanitize(post.flagReason)} <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;" onclick="window.unflagPost('${post.id}')">Approve</button></div>` : ""}
+        ${post.flagged && isAdmin ? `
+          <div style="background:#fff3e0;padding:10px;border-radius:10px;font-size:13px;color:#f57c00;display:flex;flex-direction:column;gap:8px;">
+            <span>⚠️ Reported: <b>${sanitize(post.flagReason)}</b></span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-danger" onclick="window.adminDeletePost('${post.id}')">🗑 Remove Post</button>
+              <button class="btn btn-ghost" onclick="window.unflagPost('${post.id}')">✅ Keep Post</button>
+            </div>
+          </div>
+        ` : ""}
         <h3>${sanitize(post.title)}</h3>
         <p>${sanitize(post.content)}</p>
         <small>${sanitize(post.user)}</small>
@@ -569,19 +531,16 @@ function loadVideos() {
     }
     let videos = [];
     snapshot.forEach(d => videos.push({ id: d.id, ...d.data() }));
-
-    // Sort by interest score
     videos.sort((a, b) => {
       const scoreA = getInterestScore(a.title + " " + (a.creator || ""));
       const scoreB = getInterestScore(b.title + " " + (b.creator || ""));
       return scoreB - scoreA;
     });
-
     videos.forEach(v => {
       const div = document.createElement("div");
       div.className = "yt-card";
       div.innerHTML = `
-        <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none';trackInterest('${sanitize(v.title)}')">
+        <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none';window.trackInterest('${sanitize(v.title)}')">
           <img src="https://img.youtube.com/vi/${sanitize(v.youtubeId)}/hqdefault.jpg"
             onerror="this.src='https://img.youtube.com/vi/${sanitize(v.youtubeId)}/mqdefault.jpg'">
           <div class="yt-play">▶</div>
@@ -640,10 +599,8 @@ window.submitGroupPost = async function() {
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Too long");
-
   const check = moderateContent(title + " " + content);
   if (!check.allowed && check.autoDelete) return alert("Post blocked: " + check.reason);
-
   await addDoc(collection(db, "groups", currentGroupId, "posts"), {
     title, content, user: displayName, ownerId: userId,
     createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
@@ -662,8 +619,6 @@ function loadGroups() {
     }
     let groups = [];
     snapshot.forEach(d => groups.push({ id: d.id, ...d.data() }));
-
-    // Sort pinned first then by interest score
     groups.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -671,7 +626,6 @@ function loadGroups() {
       const scoreB = getInterestScore(b.name + " " + b.desc);
       return scoreB - scoreA;
     });
-
     groups.forEach(g => {
       const div = document.createElement("div");
       div.className = g.pinned ? "group-card pinned-card" : "group-card";
@@ -710,10 +664,8 @@ window.addGroupComment = async function(groupId, postId) {
   if (now - lastCommentTime < 10000) return alert("Slow down");
   if (!text) return;
   if (text.length > 200) return alert("Too long");
-
   const check = moderateContent(text);
   if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
-
   await addDoc(collection(db, "groups", groupId, "posts", postId, "comments"), {
     text, user: displayName, time: now, flagged: !check.allowed
   });
@@ -812,8 +764,6 @@ function loadContacts() {
     }
     let contacts = [];
     snapshot.forEach(d => contacts.push({ id: d.id, ...d.data() }));
-
-    // Sort pinned first then by interest score
     contacts.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -821,7 +771,6 @@ function loadContacts() {
       const scoreB = getInterestScore(b.name + " " + (b.note || ""));
       return scoreB - scoreA;
     });
-
     contacts.forEach(c => {
       const div = document.createElement("div");
       div.className = c.pinned ? "contact-card pinned-card" : "contact-card";
