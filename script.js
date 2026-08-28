@@ -38,15 +38,13 @@ let currentTab = "fyp";
 let currentGroupId = null;
 let currentGroupName = null;
 
-// ── USER INTEREST TRACKING ──
+// ── INTEREST TRACKING ──
 let userInterests = JSON.parse(localStorage.getItem("userInterests") || "{}");
-
 function trackInterest(text) {
   const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 4);
   words.forEach(w => { userInterests[w] = (userInterests[w] || 0) + 1; });
   localStorage.setItem("userInterests", JSON.stringify(userInterests));
 }
-
 function getInterestScore(text) {
   if (!text) return 0;
   const words = text.toLowerCase().split(/\s+/);
@@ -56,19 +54,8 @@ function getInterestScore(text) {
 }
 
 // ── MODERATION ──
-const BANNED_WORDS = [
-  "spam", "scam", "porn", "xxx", "onlyfans", "nude", "nudes",
-  "hack", "hacker", "free money", "click here", "buy now",
-  "badword1", "badword2"
-];
-
-const SPAM_PATTERNS = [
-  /(.)\1{4,}/,
-  /(https?:\/\/\S+)/i,
-  /[A-Z\s]{20,}/,
-  /\b\d{10,}\b/,
-];
-
+const BANNED_WORDS = ["spam","scam","porn","xxx","onlyfans","nude","nudes","hack","hacker","free money","click here","buy now","badword1","badword2"];
+const SPAM_PATTERNS = [/(.)\1{4,}/,/(https?:\/\/\S+)/i,/[A-Z\s]{20,}/,/\b\d{10,}\b/];
 function moderateContent(text) {
   const lower = text.toLowerCase();
   for (const word of BANNED_WORDS) {
@@ -88,10 +75,45 @@ function sanitize(str) {
   div.textContent = str || "";
   return div.innerHTML;
 }
-
 function extractYoutubeId(url) {
   const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
   return match ? match[1] : null;
+}
+
+// ── REPORT MODAL HELPER ──
+function showReportModal(title, onSubmit) {
+  const modal = document.getElementById("modal-content");
+  const overlay = document.getElementById("modal-overlay");
+  modal.innerHTML = `
+    <div class="modal-header">
+      <h2>${title}</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <p style="font-size:14px;color:#666;margin-bottom:14px;">Why are you reporting this?</p>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Spam or self-promotion"> Spam or self-promotion
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Hate speech or harassment"> Hate speech or harassment
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Misinformation"> Misinformation
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Inappropriate content"> Inappropriate content
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Dangerous or harmful"> Dangerous or harmful
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
+        <input type="radio" name="report-reason" value="Other"> Other
+      </label>
+      <button class="btn btn-danger" style="margin-top:6px;" id="report-submit-btn">Submit Report</button>
+    </div>
+  `;
+  overlay.classList.add("open");
+  document.getElementById("report-submit-btn").onclick = onSubmit;
 }
 
 // ── TAB SWITCHING ──
@@ -108,7 +130,6 @@ window.openPostModal = function() {
   const modal = document.getElementById("modal-content");
   const overlay = document.getElementById("modal-overlay");
   let html = "";
-
   if (currentTab === "fyp") {
     html = `
       <div class="modal-header">
@@ -171,7 +192,6 @@ window.openPostModal = function() {
         <button class="btn btn-primary" onclick="submitContact()">Post Card</button>
       </div>`;
   }
-
   modal.innerHTML = html;
   overlay.classList.add("open");
 };
@@ -182,7 +202,7 @@ window.closeModal = function(e) {
   }
 };
 
-// ── SUBMIT POST ──
+// ── FYP POSTS ──
 window.submitPost = async function() {
   const title = document.getElementById("modal-title").value.trim();
   const content = document.getElementById("modal-content-text").value.trim();
@@ -191,76 +211,23 @@ window.submitPost = async function() {
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Story too long");
-
   const titleCheck = moderateContent(title);
   const contentCheck = moderateContent(content);
-
   if (!titleCheck.allowed && titleCheck.autoDelete) return alert("Post blocked: " + titleCheck.reason);
   if (!contentCheck.allowed && contentCheck.autoDelete) return alert("Post blocked: " + contentCheck.reason);
-
   const flagged = !titleCheck.allowed || !contentCheck.allowed;
   const flagReason = !titleCheck.allowed ? titleCheck.reason : contentCheck.reason;
-
   await addDoc(collection(db, "posts"), {
     title, content, user: displayName, ownerId: userId,
     createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
     pinned: false, flagged, flagReason: flagged ? flagReason : ""
   });
-
   lastPostTime = now;
   localStorage.setItem("lastPostTime", now);
   document.getElementById("modal-overlay").classList.remove("open");
   if (flagged) alert("Your post has been submitted for review.");
 };
 
-// ── REPORT ──
-window.reportPost = function(postId) {
-  const modal = document.getElementById("modal-content");
-  const overlay = document.getElementById("modal-overlay");
-  modal.innerHTML = `
-    <div class="modal-header">
-      <h2>Report Post</h2>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <p style="font-size:14px;color:#666;margin-bottom:14px;">Why are you reporting this post?</p>
-    <div class="form-group">
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Spam or self-promotion"> Spam or self-promotion
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Hate speech or harassment"> Hate speech or harassment
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Misinformation"> Misinformation
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Inappropriate content"> Inappropriate content
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Dangerous or harmful"> Dangerous or harmful
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Other"> Other
-      </label>
-      <button class="btn btn-danger" style="margin-top:6px;" onclick="window.submitReport('${postId}')">Submit Report</button>
-    </div>
-  `;
-  overlay.classList.add("open");
-};
-
-window.submitReport = async function(postId) {
-  const selected = document.querySelector('input[name="report-reason"]:checked');
-  if (!selected) return alert("Please select a reason");
-  await updateDoc(doc(db, "posts", postId), {
-    flagged: true,
-    flagReason: selected.value,
-    reportedBy: arrayUnion(userId)
-  });
-  document.getElementById("modal-overlay").classList.remove("open");
-  alert("Report submitted. Thank you.");
-};
-
-// ── LIKE ──
 window.likePost = async function(postId, title, content) {
   const ref = doc(db, "posts", postId);
   const snap = await getDoc(ref);
@@ -271,7 +238,6 @@ window.likePost = async function(postId, title, content) {
   trackInterest((title || "") + " " + (content || ""));
 };
 
-// ── COMMENT ──
 window.addComment = async function(postId) {
   const input = document.getElementById(`comment-${postId}`);
   const text = input.value.trim();
@@ -281,24 +247,18 @@ window.addComment = async function(postId) {
   if (text.length > 200) return alert("Too long");
   const check = moderateContent(text);
   if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
-  await addDoc(collection(db, "posts", postId, "comments"), {
-    text, user: displayName, time: now, flagged: !check.allowed
-  });
-  if (check.allowed) {
-    await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
-  }
+  await addDoc(collection(db, "posts", postId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
+  if (check.allowed) await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
   lastCommentTime = now;
   localStorage.setItem("lastCommentTime", now);
   input.value = "";
 };
 
-// ── EDIT / DELETE ──
 window.editPost = async function(id, oldTitle, oldContent) {
   const ref = doc(db, "posts", id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
-  const data = snap.data();
-  if (data.ownerId !== userId && !isAdmin) return alert("Not your post");
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your post");
   const newTitle = prompt("Edit title:", oldTitle);
   const newContent = prompt("Edit content:", oldContent);
   if (!newTitle || !newContent) return;
@@ -309,8 +269,7 @@ window.deletePost = async function(id) {
   const ref = doc(db, "posts", id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
-  const data = snap.data();
-  if (data.ownerId !== userId && !isAdmin) return alert("Not your post");
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your post");
   if (!confirm("Delete?")) return;
   await deleteDoc(ref);
 };
@@ -319,25 +278,25 @@ window.adminDeletePost = async function(id) {
   await deleteDoc(doc(db, "posts", id));
 };
 
-// ── PIN ──
-window.pinPost = async function(postId, currentlyPinned) {
-  await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
+window.reportPost = function(postId) {
+  showReportModal("Report Post", async () => {
+    const selected = document.querySelector('input[name="report-reason"]:checked');
+    if (!selected) return alert("Please select a reason");
+    await updateDoc(doc(db, "posts", postId), { flagged: true, flagReason: selected.value, reportedBy: arrayUnion(userId) });
+    document.getElementById("modal-overlay").classList.remove("open");
+    alert("Report submitted. Thank you.");
+  });
 };
 
-window.pinGroup = async function(groupId, currentlyPinned) {
-  await updateDoc(doc(db, "groups", groupId), { pinned: !currentlyPinned });
-};
-
-window.pinContact = async function(contactId, currentlyPinned) {
-  await updateDoc(doc(db, "contacts", contactId), { pinned: !currentlyPinned });
-};
-
-// ── UNFLAG ──
 window.unflagPost = async function(postId) {
   await updateDoc(doc(db, "posts", postId), { flagged: false, flagReason: "" });
 };
 
-// ── COMMENTS LOADER ──
+window.pinPost = async function(postId, currentlyPinned) {
+  await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
+};
+
+// ── COMMENTS ──
 function loadComments(postId) {
   const q = query(collection(db, "posts", postId, "comments"), orderBy("time"));
   onSnapshot(q, snapshot => {
@@ -353,7 +312,7 @@ function loadComments(postId) {
   });
 }
 
-// ── FYP ──
+// ── FYP LOAD ──
 async function loadFYP() {
   const [videosSnap, groupsSnap, contactsSnap] = await Promise.all([
     new Promise(res => onSnapshot(query(collection(db, "videos"), where("status", "==", "approved")), res)),
@@ -365,7 +324,6 @@ async function loadFYP() {
     const feed = document.getElementById("fyp-feed");
     const now = Date.now();
     let posts = [];
-
     snapshot.forEach(d => {
       const raw = d.data();
       if (raw.flagged && !isAdmin) return;
@@ -376,9 +334,7 @@ async function loadFYP() {
         likes: Number(raw.likes) || 0,
         likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
         commentsCount: Number(raw.commentsCount) || 0,
-        pinned: raw.pinned || false,
-        flagged: raw.flagged || false,
-        flagReason: raw.flagReason || ""
+        pinned: raw.pinned || false, flagged: raw.flagged || false, flagReason: raw.flagReason || ""
       };
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
@@ -398,7 +354,6 @@ async function loadFYP() {
     });
 
     feed.innerHTML = "";
-
     if (posts.length === 0) {
       feed.innerHTML = `<div class="empty-msg">No stories yet. Be the first to share!</div>`;
       return;
@@ -421,8 +376,8 @@ async function loadFYP() {
           <div style="background:#fff3e0;padding:10px;border-radius:10px;font-size:13px;color:#f57c00;display:flex;flex-direction:column;gap:8px;">
             <span>⚠️ Reported: <b>${sanitize(post.flagReason)}</b></span>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-danger" onclick="window.adminDeletePost('${post.id}')">🗑 Remove Post</button>
-              <button class="btn btn-ghost" onclick="window.unflagPost('${post.id}')">✅ Keep Post</button>
+              <button class="btn btn-danger" onclick="window.adminDeletePost('${post.id}')">🗑 Remove</button>
+              <button class="btn btn-ghost" onclick="window.unflagPost('${post.id}')">✅ Keep</button>
             </div>
           </div>
         ` : ""}
@@ -436,11 +391,7 @@ async function loadFYP() {
             <button class="btn btn-ghost" onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
             <button class="btn btn-danger" onclick="window.deletePost('${post.id}')">🗑</button>
           ` : ""}
-          ${isAdmin ? `
-            <button class="btn ${post.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinPost('${post.id}', ${post.pinned})">
-              ${post.pinned ? "📌 Unpin" : "📌 Pin"}
-            </button>
-          ` : ""}
+          ${isAdmin ? `<button class="btn ${post.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinPost('${post.id}', ${post.pinned})">${post.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
         </div>
         <div class="comments-section">
           <div id="comments-${post.id}"></div>
@@ -457,7 +408,6 @@ async function loadFYP() {
         const item = injected[injectIndex % injected.length];
         injectIndex++;
         const injectDiv = document.createElement("div");
-
         if (item.type === "video") {
           injectDiv.className = "card";
           injectDiv.innerHTML = `
@@ -467,9 +417,7 @@ async function loadFYP() {
               <div class="yt-play">▶</div>
             </div>
             <div class="yt-player" style="display:none">
-              <iframe src="https://www.youtube.com/embed/${sanitize(item.data.youtubeId)}"
-                allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
-              </iframe>
+              <iframe src="https://www.youtube.com/embed/${sanitize(item.data.youtubeId)}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
             </div>
             <div class="yt-title">${sanitize(item.data.title)}</div>
             <div class="yt-creator">🎬 ${sanitize(item.data.creator)}</div>
@@ -514,10 +462,42 @@ window.submitVideo = async function() {
   if (!youtubeId) return alert("Invalid YouTube URL");
   await addDoc(collection(db, "videos"), {
     youtubeId, title, creator, status: "pending",
-    submittedBy: userId, createdAt: serverTimestamp()
+    submittedBy: userId, createdAt: serverTimestamp(),
+    likes: 0, likedBy: [], flagged: false, flagReason: "", pinned: false
   });
   alert("Video submitted for review!");
   document.getElementById("modal-overlay").classList.remove("open");
+};
+
+window.likeVideo = async function(videoId) {
+  const ref = doc(db, "videos", videoId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
+  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+};
+
+window.reportVideo = function(videoId) {
+  showReportModal("Report Video", async () => {
+    const selected = document.querySelector('input[name="report-reason"]:checked');
+    if (!selected) return alert("Please select a reason");
+    await updateDoc(doc(db, "videos", videoId), { flagged: true, flagReason: selected.value, reportedBy: arrayUnion(userId) });
+    document.getElementById("modal-overlay").classList.remove("open");
+    alert("Report submitted. Thank you.");
+  });
+};
+
+window.adminDeleteVideo = async function(id) {
+  await deleteDoc(doc(db, "videos", id));
+};
+
+window.unflagVideo = async function(id) {
+  await updateDoc(doc(db, "videos", id), { flagged: false, flagReason: "" });
+};
+
+window.pinVideo = async function(id, currentlyPinned) {
+  await updateDoc(doc(db, "videos", id), { pinned: !currentlyPinned });
 };
 
 function loadVideos() {
@@ -530,8 +510,14 @@ function loadVideos() {
       return;
     }
     let videos = [];
-    snapshot.forEach(d => videos.push({ id: d.id, ...d.data() }));
+    snapshot.forEach(d => {
+      const data = d.data();
+      if (data.flagged && !isAdmin) return;
+      videos.push({ id: d.id, ...data });
+    });
     videos.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
       const scoreA = getInterestScore(a.title + " " + (a.creator || ""));
       const scoreB = getInterestScore(b.title + " " + (b.creator || ""));
       return scoreB - scoreA;
@@ -540,19 +526,35 @@ function loadVideos() {
       const div = document.createElement("div");
       div.className = "yt-card";
       div.innerHTML = `
+        ${v.pinned ? `<div style="padding:4px 10px;font-size:11px;color:#00bcd4;font-weight:600;">📌 Pinned</div>` : ""}
+        ${v.flagged && isAdmin ? `
+          <div style="background:#fff3e0;padding:8px 10px;font-size:12px;color:#f57c00;display:flex;align-items:center;justify-content:space-between;">
+            <span>⚠️ ${sanitize(v.flagReason)}</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-danger" style="font-size:11px;padding:3px 8px;" onclick="window.adminDeleteVideo('${v.id}')">🗑 Remove</button>
+              <button class="btn btn-ghost" style="font-size:11px;padding:3px 8px;" onclick="window.unflagVideo('${v.id}')">✅ Keep</button>
+            </div>
+          </div>
+        ` : ""}
         <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none';window.trackInterest('${sanitize(v.title)}')">
           <img src="https://img.youtube.com/vi/${sanitize(v.youtubeId)}/hqdefault.jpg"
             onerror="this.src='https://img.youtube.com/vi/${sanitize(v.youtubeId)}/mqdefault.jpg'">
           <div class="yt-play">▶</div>
         </div>
         <div class="yt-player" style="display:none">
-          <iframe src="https://www.youtube.com/embed/${sanitize(v.youtubeId)}"
-            allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
-          </iframe>
+          <iframe src="https://www.youtube.com/embed/${sanitize(v.youtubeId)}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
         </div>
         <div class="yt-info">
           <div class="yt-title">${sanitize(v.title)}</div>
           <div class="yt-creator">🎬 ${sanitize(v.creator)}</div>
+          <div class="card-actions" style="margin-top:8px;">
+            <button class="btn btn-ghost" onclick="window.likeVideo('${v.id}')">♡ ${v.likes || 0}</button>
+            <button class="btn btn-ghost" onclick="window.reportVideo('${v.id}')">🚩</button>
+            ${isAdmin ? `
+              <button class="btn btn-danger" onclick="window.adminDeleteVideo('${v.id}')">🗑</button>
+              <button class="btn ${v.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinVideo('${v.id}', ${v.pinned || false})">${v.pinned ? "📌 Unpin" : "📌 Pin"}</button>
+            ` : ""}
+          </div>
         </div>
       `;
       feed.appendChild(div);
@@ -592,6 +594,56 @@ window.closeGroup = function() {
   document.getElementById("group-detail-view").style.display = "none";
 };
 
+window.pinGroup = async function(groupId, currentlyPinned) {
+  await updateDoc(doc(db, "groups", groupId), { pinned: !currentlyPinned });
+};
+
+window.adminDeleteGroup = async function(id) {
+  await deleteDoc(doc(db, "groups", id));
+};
+
+function loadGroups() {
+  onSnapshot(collection(db, "groups"), snapshot => {
+    const feed = document.getElementById("groups-feed");
+    feed.innerHTML = "";
+    if (snapshot.empty) {
+      feed.innerHTML = `<div class="empty-msg">No groups yet. Create one!</div>`;
+      return;
+    }
+    let groups = [];
+    snapshot.forEach(d => groups.push({ id: d.id, ...d.data() }));
+    groups.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return getInterestScore(b.name + " " + b.desc) - getInterestScore(a.name + " " + a.desc);
+    });
+    groups.forEach(g => {
+      const div = document.createElement("div");
+      div.className = g.pinned ? "group-card pinned-card" : "group-card";
+      div.onclick = () => window.openGroup(g.id, g.name);
+      div.innerHTML = `
+        ${g.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
+        <div class="group-card-top">
+          <span class="group-emoji">${sanitize(g.emoji || "👥")}</span>
+          <span class="group-name">${sanitize(g.name)}</span>
+        </div>
+        <div class="group-desc">${sanitize(g.desc)}</div>
+        <div class="group-meta">
+          <span>${g.memberCount || 0} members</span>
+          ${isAdmin ? `
+            <div style="display:flex;gap:6px;">
+              <button class="btn ${g.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="event.stopPropagation();window.pinGroup('${g.id}', ${g.pinned || false})">${g.pinned ? "📌 Unpin" : "📌 Pin"}</button>
+              <button class="btn btn-danger" style="font-size:12px;padding:4px 8px;" onclick="event.stopPropagation();window.adminDeleteGroup('${g.id}')">🗑</button>
+            </div>
+          ` : ""}
+        </div>
+      `;
+      feed.appendChild(div);
+    });
+  }, err => console.error("Groups error:", err));
+}
+
+// ── GROUP POSTS ──
 window.submitGroupPost = async function() {
   const title = document.getElementById("modal-gpost-title").value.trim();
   const content = document.getElementById("modal-gpost-content").value.trim();
@@ -608,44 +660,6 @@ window.submitGroupPost = async function() {
   });
   document.getElementById("modal-overlay").classList.remove("open");
 };
-
-function loadGroups() {
-  onSnapshot(collection(db, "groups"), snapshot => {
-    const feed = document.getElementById("groups-feed");
-    feed.innerHTML = "";
-    if (snapshot.empty) {
-      feed.innerHTML = `<div class="empty-msg">No groups yet. Create one!</div>`;
-      return;
-    }
-    let groups = [];
-    snapshot.forEach(d => groups.push({ id: d.id, ...d.data() }));
-    groups.sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      const scoreA = getInterestScore(a.name + " " + a.desc);
-      const scoreB = getInterestScore(b.name + " " + b.desc);
-      return scoreB - scoreA;
-    });
-    groups.forEach(g => {
-      const div = document.createElement("div");
-      div.className = g.pinned ? "group-card pinned-card" : "group-card";
-      div.onclick = () => window.openGroup(g.id, g.name);
-      div.innerHTML = `
-        ${g.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
-        <div class="group-card-top">
-          <span class="group-emoji">${sanitize(g.emoji || "👥")}</span>
-          <span class="group-name">${sanitize(g.name)}</span>
-        </div>
-        <div class="group-desc">${sanitize(g.desc)}</div>
-        <div class="group-meta">
-          <span>${g.memberCount || 0} members</span>
-          ${isAdmin ? `<button class="btn ${g.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="event.stopPropagation();window.pinGroup('${g.id}', ${g.pinned || false})">${g.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
-        </div>
-      `;
-      feed.appendChild(div);
-    });
-  }, err => console.error("Groups error:", err));
-}
 
 window.likeGroupPost = async function(groupId, postId) {
   const ref = doc(db, "groups", groupId, "posts", postId);
@@ -666,13 +680,49 @@ window.addGroupComment = async function(groupId, postId) {
   if (text.length > 200) return alert("Too long");
   const check = moderateContent(text);
   if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
-  await addDoc(collection(db, "groups", groupId, "posts", postId, "comments"), {
-    text, user: displayName, time: now, flagged: !check.allowed
-  });
+  await addDoc(collection(db, "groups", groupId, "posts", postId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
   await updateDoc(doc(db, "groups", groupId, "posts", postId), { commentsCount: increment(1) });
   lastCommentTime = now;
   localStorage.setItem("lastCommentTime", now);
   input.value = "";
+};
+
+window.editGroupPost = async function(groupId, postId, oldTitle, oldContent) {
+  const ref = doc(db, "groups", groupId, "posts", postId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your post");
+  const newTitle = prompt("Edit title:", oldTitle);
+  const newContent = prompt("Edit content:", oldContent);
+  if (!newTitle || !newContent) return;
+  await updateDoc(ref, { title: newTitle, content: newContent });
+};
+
+window.deleteGroupPost = async function(groupId, postId) {
+  const ref = doc(db, "groups", groupId, "posts", postId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your post");
+  if (!confirm("Delete?")) return;
+  await deleteDoc(ref);
+};
+
+window.adminDeleteGroupPost = async function(groupId, postId) {
+  await deleteDoc(doc(db, "groups", groupId, "posts", postId));
+};
+
+window.reportGroupPost = function(groupId, postId) {
+  showReportModal("Report Post", async () => {
+    const selected = document.querySelector('input[name="report-reason"]:checked');
+    if (!selected) return alert("Please select a reason");
+    await updateDoc(doc(db, "groups", groupId, "posts", postId), { flagged: true, flagReason: selected.value, reportedBy: arrayUnion(userId) });
+    document.getElementById("modal-overlay").classList.remove("open");
+    alert("Report submitted. Thank you.");
+  });
+};
+
+window.unflagGroupPost = async function(groupId, postId) {
+  await updateDoc(doc(db, "groups", groupId, "posts", postId), { flagged: false, flagReason: "" });
 };
 
 function loadGroupPosts(groupId) {
@@ -689,7 +739,8 @@ function loadGroupPosts(groupId) {
         createdAt: raw.createdAt || null,
         likes: Number(raw.likes) || 0,
         likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
-        commentsCount: Number(raw.commentsCount) || 0
+        commentsCount: Number(raw.commentsCount) || 0,
+        flagged: raw.flagged || false, flagReason: raw.flagReason || ""
       };
       const id = d.id;
       const time = p.createdAt?.toMillis?.() || now;
@@ -707,14 +758,29 @@ function loadGroupPosts(groupId) {
       return;
     }
     posts.forEach(post => {
+      const isOwner = post.ownerId === userId;
       const div = document.createElement("div");
       div.className = "card";
       div.innerHTML = `
+        ${post.flagged && isAdmin ? `
+          <div style="background:#fff3e0;padding:10px;border-radius:10px;font-size:13px;color:#f57c00;display:flex;flex-direction:column;gap:8px;">
+            <span>⚠️ Reported: <b>${sanitize(post.flagReason)}</b></span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-danger" onclick="window.adminDeleteGroupPost('${groupId}', '${post.id}')">🗑 Remove</button>
+              <button class="btn btn-ghost" onclick="window.unflagGroupPost('${groupId}', '${post.id}')">✅ Keep</button>
+            </div>
+          </div>
+        ` : ""}
         <h3>${sanitize(post.title)}</h3>
         <p>${sanitize(post.content)}</p>
         <small>${sanitize(post.user)}</small>
         <div class="card-actions">
           <button class="btn btn-ghost" onclick="window.likeGroupPost('${groupId}', '${post.id}')">♡ ${post.likes}</button>
+          <button class="btn btn-ghost" onclick="window.reportGroupPost('${groupId}', '${post.id}')">🚩</button>
+          ${isOwner || isAdmin ? `
+            <button class="btn btn-ghost" onclick="window.editGroupPost('${groupId}', '${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
+            <button class="btn btn-danger" onclick="window.deleteGroupPost('${groupId}', '${post.id}')">🗑</button>
+          ` : ""}
         </div>
         <div class="comments-section">
           <div id="gcomments-${post.id}"></div>
@@ -749,9 +815,41 @@ window.submitContact = async function() {
   const textNumber = document.getElementById("modal-contact-text").value.trim();
   if (!name) return alert("Add a display name");
   await addDoc(collection(db, "contacts"), {
-    name, note, number, textNumber, createdAt: serverTimestamp(), pinned: false
+    name, note, number, textNumber, createdAt: serverTimestamp(),
+    pinned: false, flagged: false, flagReason: "", likes: 0, likedBy: []
   });
   document.getElementById("modal-overlay").classList.remove("open");
+};
+
+window.likeContact = async function(contactId) {
+  const ref = doc(db, "contacts", contactId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
+  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+};
+
+window.reportContact = function(contactId) {
+  showReportModal("Report Contact", async () => {
+    const selected = document.querySelector('input[name="report-reason"]:checked');
+    if (!selected) return alert("Please select a reason");
+    await updateDoc(doc(db, "contacts", contactId), { flagged: true, flagReason: selected.value, reportedBy: arrayUnion(userId) });
+    document.getElementById("modal-overlay").classList.remove("open");
+    alert("Report submitted. Thank you.");
+  });
+};
+
+window.adminDeleteContact = async function(id) {
+  await deleteDoc(doc(db, "contacts", id));
+};
+
+window.unflagContact = async function(id) {
+  await updateDoc(doc(db, "contacts", id), { flagged: false, flagReason: "" });
+};
+
+window.pinContact = async function(contactId, currentlyPinned) {
+  await updateDoc(doc(db, "contacts", contactId), { pinned: !currentlyPinned });
 };
 
 function loadContacts() {
@@ -763,25 +861,41 @@ function loadContacts() {
       return;
     }
     let contacts = [];
-    snapshot.forEach(d => contacts.push({ id: d.id, ...d.data() }));
+    snapshot.forEach(d => {
+      const data = d.data();
+      if (data.flagged && !isAdmin) return;
+      contacts.push({ id: d.id, ...data });
+    });
     contacts.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      const scoreA = getInterestScore(a.name + " " + (a.note || ""));
-      const scoreB = getInterestScore(b.name + " " + (b.note || ""));
-      return scoreB - scoreA;
+      return getInterestScore(b.name + " " + (b.note || "")) - getInterestScore(a.name + " " + (a.note || ""));
     });
     contacts.forEach(c => {
       const div = document.createElement("div");
       div.className = c.pinned ? "contact-card pinned-card" : "contact-card";
       div.innerHTML = `
         ${c.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
+        ${c.flagged && isAdmin ? `
+          <div style="background:#fff3e0;padding:10px;border-radius:10px;font-size:13px;color:#f57c00;display:flex;flex-direction:column;gap:8px;">
+            <span>⚠️ Reported: <b>${sanitize(c.flagReason)}</b></span>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-danger" onclick="window.adminDeleteContact('${c.id}')">🗑 Remove</button>
+              <button class="btn btn-ghost" onclick="window.unflagContact('${c.id}')">✅ Keep</button>
+            </div>
+          </div>
+        ` : ""}
         <div class="contact-name">${sanitize(c.name)}</div>
         ${c.note ? `<div class="contact-note">${sanitize(c.note)}</div>` : ""}
         <div class="contact-btns">
           ${c.number ? `<a href="tel:${sanitize(c.number)}" class="btn btn-call">📞 ${sanitize(c.number)}</a>` : ""}
           ${c.textNumber ? `<a href="sms:${sanitize(c.textNumber)}" class="btn btn-primary">💬 ${sanitize(c.textNumber)}</a>` : ""}
-          ${isAdmin ? `<button class="btn ${c.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinContact('${c.id}', ${c.pinned || false})">${c.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
+          <button class="btn btn-ghost" onclick="window.likeContact('${c.id}')">♡ ${c.likes || 0}</button>
+          <button class="btn btn-ghost" onclick="window.reportContact('${c.id}')">🚩</button>
+          ${isAdmin ? `
+            <button class="btn ${c.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinContact('${c.id}', ${c.pinned || false})">${c.pinned ? "📌 Unpin" : "📌 Pin"}</button>
+            <button class="btn btn-danger" onclick="window.adminDeleteContact('${c.id}')">🗑</button>
+          ` : ""}
         </div>
       `;
       feed.appendChild(div);
