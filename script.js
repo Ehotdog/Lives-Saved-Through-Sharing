@@ -80,7 +80,7 @@ function extractYoutubeId(url) {
   return match ? match[1] : null;
 }
 
-// ── REPORT MODAL HELPER ──
+// ── REPORT MODAL ──
 function showReportModal(title, onSubmit) {
   const modal = document.getElementById("modal-content");
   const overlay = document.getElementById("modal-overlay");
@@ -91,24 +91,12 @@ function showReportModal(title, onSubmit) {
     </div>
     <p style="font-size:14px;color:#666;margin-bottom:14px;">Why are you reporting this?</p>
     <div class="form-group">
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Spam or self-promotion"> Spam or self-promotion
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Hate speech or harassment"> Hate speech or harassment
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Misinformation"> Misinformation
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Inappropriate content"> Inappropriate content
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Dangerous or harmful"> Dangerous or harmful
-      </label>
-      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;">
-        <input type="radio" name="report-reason" value="Other"> Other
-      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;"><input type="radio" name="report-reason" value="Spam or self-promotion"> Spam or self-promotion</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;"><input type="radio" name="report-reason" value="Hate speech or harassment"> Hate speech or harassment</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;"><input type="radio" name="report-reason" value="Misinformation"> Misinformation</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;"><input type="radio" name="report-reason" value="Inappropriate content"> Inappropriate content</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;"><input type="radio" name="report-reason" value="Dangerous or harmful"> Dangerous or harmful</label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;padding:10px;background:#f9f9f9;border-radius:10px;cursor:pointer;"><input type="radio" name="report-reason" value="Other"> Other</label>
       <button class="btn btn-danger" style="margin-top:6px;" id="report-submit-btn">Submit Report</button>
     </div>
   `;
@@ -132,10 +120,7 @@ window.openPostModal = function() {
   let html = "";
   if (currentTab === "fyp") {
     html = `
-      <div class="modal-header">
-        <h2>Share Your Story</h2>
-        <button class="modal-close" onclick="closeModal()">✕</button>
-      </div>
+      <div class="modal-header"><h2>Share Your Story</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
       <div class="form-group">
         <input type="text" id="modal-title" placeholder="Title (max 80 chars)">
         <textarea id="modal-content-text" placeholder="Tell your story... (max 500 chars)"></textarea>
@@ -143,10 +128,7 @@ window.openPostModal = function() {
       </div>`;
   } else if (currentTab === "videos") {
     html = `
-      <div class="modal-header">
-        <h2>Submit a Video</h2>
-        <button class="modal-close" onclick="closeModal()">✕</button>
-      </div>
+      <div class="modal-header"><h2>Submit a Video</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
       <div class="form-group">
         <input type="url" id="modal-video-url" placeholder="YouTube URL">
         <input type="text" id="modal-video-title" placeholder="Video title">
@@ -156,10 +138,7 @@ window.openPostModal = function() {
   } else if (currentTab === "groups") {
     if (currentGroupId) {
       html = `
-        <div class="modal-header">
-          <h2>Post in ${sanitize(currentGroupName)}</h2>
-          <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
+        <div class="modal-header"><h2>Post in ${sanitize(currentGroupName)}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
         <div class="form-group">
           <input type="text" id="modal-gpost-title" placeholder="Title">
           <textarea id="modal-gpost-content" placeholder="Share your experience..."></textarea>
@@ -167,10 +146,7 @@ window.openPostModal = function() {
         </div>`;
     } else {
       html = `
-        <div class="modal-header">
-          <h2>Create a Group</h2>
-          <button class="modal-close" onclick="closeModal()">✕</button>
-        </div>
+        <div class="modal-header"><h2>Create a Group</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
         <div class="form-group">
           <input type="text" id="modal-group-name" placeholder="Group name">
           <textarea id="modal-group-desc" placeholder="What is this group about?"></textarea>
@@ -180,10 +156,7 @@ window.openPostModal = function() {
     }
   } else if (currentTab === "contact") {
     html = `
-      <div class="modal-header">
-        <h2>Add Contact Card</h2>
-        <button class="modal-close" onclick="closeModal()">✕</button>
-      </div>
+      <div class="modal-header"><h2>Add Contact Card</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
       <div class="form-group">
         <input type="text" id="modal-contact-name" placeholder="Display name">
         <textarea id="modal-contact-note" placeholder="A note about yourself..."></textarea>
@@ -296,7 +269,7 @@ window.pinPost = async function(postId, currentlyPinned) {
   await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
 };
 
-// ── COMMENTS ──
+// ── FYP COMMENTS LOADER ──
 function loadComments(postId) {
   const q = query(collection(db, "posts", postId, "comments"), orderBy("time"));
   onSnapshot(q, snapshot => {
@@ -463,7 +436,8 @@ window.submitVideo = async function() {
   await addDoc(collection(db, "videos"), {
     youtubeId, title, creator, status: "pending",
     submittedBy: userId, createdAt: serverTimestamp(),
-    likes: 0, likedBy: [], flagged: false, flagReason: "", pinned: false
+    likes: 0, likedBy: [], comments: 0,
+    flagged: false, flagReason: "", pinned: false, ownerId: userId
   });
   alert("Video submitted for review!");
   document.getElementById("modal-overlay").classList.remove("open");
@@ -478,6 +452,61 @@ window.likeVideo = async function(videoId) {
   await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
 };
 
+window.addVideoComment = async function(videoId) {
+  const input = document.getElementById(`vcomment-${videoId}`);
+  const text = input.value.trim();
+  const now = Date.now();
+  if (now - lastCommentTime < 10000) return alert("Slow down");
+  if (!text) return;
+  if (text.length > 200) return alert("Too long");
+  const check = moderateContent(text);
+  if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
+  await addDoc(collection(db, "videos", videoId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
+  await updateDoc(doc(db, "videos", videoId), { comments: increment(1) });
+  lastCommentTime = now;
+  localStorage.setItem("lastCommentTime", now);
+  input.value = "";
+};
+
+function loadVideoComments(videoId) {
+  const q = query(collection(db, "videos", videoId, "comments"), orderBy("time"));
+  onSnapshot(q, snapshot => {
+    const div = document.getElementById(`vcomments-${videoId}`);
+    if (!div) return;
+    let html = "";
+    snapshot.forEach(d => {
+      const c = d.data();
+      if (c.flagged && !isAdmin) return;
+      html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
+    });
+    div.innerHTML = html;
+  });
+}
+
+window.editVideo = async function(id, oldTitle, oldCreator) {
+  const ref = doc(db, "videos", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your video");
+  const newTitle = prompt("Edit title:", oldTitle);
+  const newCreator = prompt("Edit creator:", oldCreator);
+  if (!newTitle || !newCreator) return;
+  await updateDoc(ref, { title: newTitle, creator: newCreator });
+};
+
+window.deleteVideo = async function(id) {
+  const ref = doc(db, "videos", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your video");
+  if (!confirm("Delete?")) return;
+  await deleteDoc(ref);
+};
+
+window.adminDeleteVideo = async function(id) {
+  await deleteDoc(doc(db, "videos", id));
+};
+
 window.reportVideo = function(videoId) {
   showReportModal("Report Video", async () => {
     const selected = document.querySelector('input[name="report-reason"]:checked');
@@ -486,10 +515,6 @@ window.reportVideo = function(videoId) {
     document.getElementById("modal-overlay").classList.remove("open");
     alert("Report submitted. Thank you.");
   });
-};
-
-window.adminDeleteVideo = async function(id) {
-  await deleteDoc(doc(db, "videos", id));
 };
 
 window.unflagVideo = async function(id) {
@@ -518,11 +543,10 @@ function loadVideos() {
     videos.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      const scoreA = getInterestScore(a.title + " " + (a.creator || ""));
-      const scoreB = getInterestScore(b.title + " " + (b.creator || ""));
-      return scoreB - scoreA;
+      return getInterestScore(b.title + " " + (b.creator || "")) - getInterestScore(a.title + " " + (a.creator || ""));
     });
     videos.forEach(v => {
+      const isOwner = v.ownerId === userId;
       const div = document.createElement("div");
       div.className = "yt-card";
       div.innerHTML = `
@@ -537,8 +561,7 @@ function loadVideos() {
           </div>
         ` : ""}
         <div class="yt-thumb" onclick="this.nextElementSibling.style.display='block';this.style.display='none';window.trackInterest('${sanitize(v.title)}')">
-          <img src="https://img.youtube.com/vi/${sanitize(v.youtubeId)}/hqdefault.jpg"
-            onerror="this.src='https://img.youtube.com/vi/${sanitize(v.youtubeId)}/mqdefault.jpg'">
+          <img src="https://img.youtube.com/vi/${sanitize(v.youtubeId)}/hqdefault.jpg" onerror="this.src='https://img.youtube.com/vi/${sanitize(v.youtubeId)}/mqdefault.jpg'">
           <div class="yt-play">▶</div>
         </div>
         <div class="yt-player" style="display:none">
@@ -547,17 +570,26 @@ function loadVideos() {
         <div class="yt-info">
           <div class="yt-title">${sanitize(v.title)}</div>
           <div class="yt-creator">🎬 ${sanitize(v.creator)}</div>
-          <div class="card-actions" style="margin-top:8px;">
+          <div class="card-actions" style="margin-top:8px;flex-wrap:wrap;">
             <button class="btn btn-ghost" onclick="window.likeVideo('${v.id}')">♡ ${v.likes || 0}</button>
             <button class="btn btn-ghost" onclick="window.reportVideo('${v.id}')">🚩</button>
-            ${isAdmin ? `
-              <button class="btn btn-danger" onclick="window.adminDeleteVideo('${v.id}')">🗑</button>
-              <button class="btn ${v.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinVideo('${v.id}', ${v.pinned || false})">${v.pinned ? "📌 Unpin" : "📌 Pin"}</button>
+            ${isOwner || isAdmin ? `
+              <button class="btn btn-ghost" onclick="window.editVideo('${v.id}', \`${sanitize(v.title)}\`, \`${sanitize(v.creator)}\`)">✎ Edit</button>
+              <button class="btn btn-danger" onclick="window.deleteVideo('${v.id}')">🗑</button>
             ` : ""}
+            ${isAdmin ? `<button class="btn ${v.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinVideo('${v.id}', ${v.pinned || false})">${v.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
+          </div>
+          <div class="comments-section">
+            <div id="vcomments-${v.id}"></div>
+            <div class="comment-input-row">
+              <input id="vcomment-${v.id}" placeholder="Write a comment...">
+              <button class="btn btn-primary" onclick="window.addVideoComment('${v.id}')">→</button>
+            </div>
           </div>
         </div>
       `;
       feed.appendChild(div);
+      loadVideoComments(v.id);
     });
   }, err => console.error("Videos error:", err));
 }
@@ -570,7 +602,7 @@ window.submitGroup = async function() {
   if (!name || !desc) return alert("Fill in all fields");
   if (name.length > 50) return alert("Name too long");
   await addDoc(collection(db, "groups"), {
-    name, desc, emoji, createdBy: userId,
+    name, desc, emoji, createdBy: userId, ownerId: userId,
     memberCount: 1, createdAt: serverTimestamp(), pinned: false
   });
   document.getElementById("modal-overlay").classList.remove("open");
@@ -618,6 +650,7 @@ function loadGroups() {
       return getInterestScore(b.name + " " + b.desc) - getInterestScore(a.name + " " + a.desc);
     });
     groups.forEach(g => {
+      const isOwner = g.ownerId === userId || g.createdBy === userId;
       const div = document.createElement("div");
       div.className = g.pinned ? "group-card pinned-card" : "group-card";
       div.onclick = () => window.openGroup(g.id, g.name);
@@ -630,12 +663,10 @@ function loadGroups() {
         <div class="group-desc">${sanitize(g.desc)}</div>
         <div class="group-meta">
           <span>${g.memberCount || 0} members</span>
-          ${isAdmin ? `
-            <div style="display:flex;gap:6px;">
-              <button class="btn ${g.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="event.stopPropagation();window.pinGroup('${g.id}', ${g.pinned || false})">${g.pinned ? "📌 Unpin" : "📌 Pin"}</button>
-              <button class="btn btn-danger" style="font-size:12px;padding:4px 8px;" onclick="event.stopPropagation();window.adminDeleteGroup('${g.id}')">🗑</button>
-            </div>
-          ` : ""}
+          <div style="display:flex;gap:6px;">
+            ${isAdmin ? `<button class="btn ${g.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="event.stopPropagation();window.pinGroup('${g.id}', ${g.pinned || false})">${g.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
+            ${isOwner || isAdmin ? `<button class="btn btn-danger" style="font-size:12px;padding:4px 8px;" onclick="event.stopPropagation();window.adminDeleteGroup('${g.id}')">🗑</button>` : ""}
+          </div>
         </div>
       `;
       feed.appendChild(div);
@@ -725,6 +756,10 @@ window.unflagGroupPost = async function(groupId, postId) {
   await updateDoc(doc(db, "groups", groupId, "posts", postId), { flagged: false, flagReason: "" });
 };
 
+window.pinGroupPost = async function(groupId, postId, currentlyPinned) {
+  await updateDoc(doc(db, "groups", groupId, "posts", postId), { pinned: !currentlyPinned });
+};
+
 function loadGroupPosts(groupId) {
   onSnapshot(collection(db, "groups", groupId, "posts"), snapshot => {
     const feed = document.getElementById("group-posts-feed");
@@ -740,6 +775,7 @@ function loadGroupPosts(groupId) {
         likes: Number(raw.likes) || 0,
         likedBy: Array.isArray(raw.likedBy) ? raw.likedBy : [],
         commentsCount: Number(raw.commentsCount) || 0,
+        pinned: raw.pinned || false,
         flagged: raw.flagged || false, flagReason: raw.flagReason || ""
       };
       const id = d.id;
@@ -751,7 +787,11 @@ function loadGroupPosts(groupId) {
       const score = (engagement + viral) / decay;
       posts.push({ id, ...p, score });
     });
-    posts.sort((a, b) => b.score - a.score);
+    posts.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return b.score - a.score;
+    });
     feed.innerHTML = "";
     if (posts.length === 0) {
       feed.innerHTML = `<div class="empty-msg">No posts yet. Be the first!</div>`;
@@ -760,8 +800,9 @@ function loadGroupPosts(groupId) {
     posts.forEach(post => {
       const isOwner = post.ownerId === userId;
       const div = document.createElement("div");
-      div.className = "card";
+      div.className = post.pinned ? "card pinned-card" : "card";
       div.innerHTML = `
+        ${post.pinned ? `<div class="pinned-label">📌 Pinned</div>` : ""}
         ${post.flagged && isAdmin ? `
           <div style="background:#fff3e0;padding:10px;border-radius:10px;font-size:13px;color:#f57c00;display:flex;flex-direction:column;gap:8px;">
             <span>⚠️ Reported: <b>${sanitize(post.flagReason)}</b></span>
@@ -781,6 +822,7 @@ function loadGroupPosts(groupId) {
             <button class="btn btn-ghost" onclick="window.editGroupPost('${groupId}', '${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
             <button class="btn btn-danger" onclick="window.deleteGroupPost('${groupId}', '${post.id}')">🗑</button>
           ` : ""}
+          ${isAdmin ? `<button class="btn ${post.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinGroupPost('${groupId}', '${post.id}', ${post.pinned})">${post.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
         </div>
         <div class="comments-section">
           <div id="gcomments-${post.id}"></div>
@@ -816,7 +858,8 @@ window.submitContact = async function() {
   if (!name) return alert("Add a display name");
   await addDoc(collection(db, "contacts"), {
     name, note, number, textNumber, createdAt: serverTimestamp(),
-    pinned: false, flagged: false, flagReason: "", likes: 0, likedBy: []
+    ownerId: userId, pinned: false, flagged: false, flagReason: "",
+    likes: 0, likedBy: []
   });
   document.getElementById("modal-overlay").classList.remove("open");
 };
@@ -830,6 +873,60 @@ window.likeContact = async function(contactId) {
   await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
 };
 
+window.addContactComment = async function(contactId) {
+  const input = document.getElementById(`ccomment-${contactId}`);
+  const text = input.value.trim();
+  const now = Date.now();
+  if (now - lastCommentTime < 10000) return alert("Slow down");
+  if (!text) return;
+  if (text.length > 200) return alert("Too long");
+  const check = moderateContent(text);
+  if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
+  await addDoc(collection(db, "contacts", contactId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
+  lastCommentTime = now;
+  localStorage.setItem("lastCommentTime", now);
+  input.value = "";
+};
+
+function loadContactComments(contactId) {
+  const q = query(collection(db, "contacts", contactId, "comments"), orderBy("time"));
+  onSnapshot(q, snapshot => {
+    const div = document.getElementById(`ccomments-${contactId}`);
+    if (!div) return;
+    let html = "";
+    snapshot.forEach(d => {
+      const c = d.data();
+      if (c.flagged && !isAdmin) return;
+      html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
+    });
+    div.innerHTML = html;
+  });
+}
+
+window.editContact = async function(id, oldName, oldNote) {
+  const ref = doc(db, "contacts", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your card");
+  const newName = prompt("Edit name:", oldName);
+  const newNote = prompt("Edit note:", oldNote);
+  if (!newName) return;
+  await updateDoc(ref, { name: newName, note: newNote || "" });
+};
+
+window.deleteContact = async function(id) {
+  const ref = doc(db, "contacts", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your card");
+  if (!confirm("Delete?")) return;
+  await deleteDoc(ref);
+};
+
+window.adminDeleteContact = async function(id) {
+  await deleteDoc(doc(db, "contacts", id));
+};
+
 window.reportContact = function(contactId) {
   showReportModal("Report Contact", async () => {
     const selected = document.querySelector('input[name="report-reason"]:checked');
@@ -838,10 +935,6 @@ window.reportContact = function(contactId) {
     document.getElementById("modal-overlay").classList.remove("open");
     alert("Report submitted. Thank you.");
   });
-};
-
-window.adminDeleteContact = async function(id) {
-  await deleteDoc(doc(db, "contacts", id));
 };
 
 window.unflagContact = async function(id) {
@@ -872,6 +965,7 @@ function loadContacts() {
       return getInterestScore(b.name + " " + (b.note || "")) - getInterestScore(a.name + " " + (a.note || ""));
     });
     contacts.forEach(c => {
+      const isOwner = c.ownerId === userId;
       const div = document.createElement("div");
       div.className = c.pinned ? "contact-card pinned-card" : "contact-card";
       div.innerHTML = `
@@ -892,13 +986,22 @@ function loadContacts() {
           ${c.textNumber ? `<a href="sms:${sanitize(c.textNumber)}" class="btn btn-primary">💬 ${sanitize(c.textNumber)}</a>` : ""}
           <button class="btn btn-ghost" onclick="window.likeContact('${c.id}')">♡ ${c.likes || 0}</button>
           <button class="btn btn-ghost" onclick="window.reportContact('${c.id}')">🚩</button>
-          ${isAdmin ? `
-            <button class="btn ${c.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinContact('${c.id}', ${c.pinned || false})">${c.pinned ? "📌 Unpin" : "📌 Pin"}</button>
-            <button class="btn btn-danger" onclick="window.adminDeleteContact('${c.id}')">🗑</button>
+          ${isOwner || isAdmin ? `
+            <button class="btn btn-ghost" onclick="window.editContact('${c.id}', \`${sanitize(c.name)}\`, \`${sanitize(c.note || '')}\`)">✎ Edit</button>
+            <button class="btn btn-danger" onclick="window.deleteContact('${c.id}')">🗑</button>
           ` : ""}
+          ${isAdmin ? `<button class="btn ${c.pinned ? 'btn-pinned' : 'btn-pin'}" onclick="window.pinContact('${c.id}', ${c.pinned || false})">${c.pinned ? "📌 Unpin" : "📌 Pin"}</button>` : ""}
+        </div>
+        <div class="comments-section">
+          <div id="ccomments-${c.id}"></div>
+          <div class="comment-input-row">
+            <input id="ccomment-${c.id}" placeholder="Write a comment...">
+            <button class="btn btn-primary" onclick="window.addContactComment('${c.id}')">→</button>
+          </div>
         </div>
       `;
       feed.appendChild(div);
+      loadContactComments(c.id);
     });
   }, err => console.error("Contacts error:", err));
 }
