@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebas
 import { initializeAppCheck, ReCaptchaV3Provider, getToken } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check.js";
 import {
   getFirestore, collection, doc, addDoc, getDoc, updateDoc,
-  deleteDoc, onSnapshot, query, orderBy, increment, arrayUnion,
+  deleteDoc, onSnapshot, query, orderBy, increment, arrayUnion, arrayRemove,
   serverTimestamp, where
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
@@ -104,6 +104,98 @@ function showReportModal(title, onSubmit) {
   document.getElementById("report-submit-btn").onclick = onSubmit;
 }
 
+// ── COMMENT RENDERER ──
+function renderComments(comments, collectionPath, postId) {
+  return comments.map(c => {
+    const isCommentOwner = c.ownerId === userId;
+    const liked = (c.likedBy || []).includes(userId);
+    return `
+      <div class="comment-item" id="comment-item-${c.id}">
+        ${c.flagged && isAdmin ? `<span style="color:#f57c00;font-size:11px;">⚠️ ${sanitize(c.flagReason)}</span> ` : ""}
+        <b>${sanitize(c.user)}:</b> ${sanitize(c.text)}
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="window.toggleCommentLike(${JSON.stringify(collectionPath)}, '${c.id}', ${liked})">${liked ? "♥" : "♡"} ${c.likes || 0}</button>
+          <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="window.reportComment(${JSON.stringify(collectionPath)}, '${c.id}')">🚩</button>
+          ${isCommentOwner || isAdmin ? `
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="window.editComment(${JSON.stringify(collectionPath)}, '${c.id}', \`${sanitize(c.text)}\`)">✎</button>
+            <button class="btn btn-danger" style="font-size:11px;padding:2px 8px;" onclick="window.deleteComment(${JSON.stringify(collectionPath)}, '${c.id}')">🗑</button>
+          ` : ""}
+          ${isAdmin && c.flagged ? `
+            <button class="btn btn-danger" style="font-size:11px;padding:2px 8px;" onclick="window.adminDeleteComment(${JSON.stringify(collectionPath)}, '${c.id}')">🗑 Remove</button>
+            <button class="btn btn-ghost" style="font-size:11px;padding:2px 8px;" onclick="window.unflagComment(${JSON.stringify(collectionPath)}, '${c.id}')">✅ Keep</button>
+          ` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+// ── COMMENT ACTIONS ──
+window.toggleCommentLike = async function(collectionPath, commentId, currentlyLiked) {
+  const ref = doc(db, ...collectionPath, commentId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  const data = snap.data();
+  if (currentlyLiked) {
+    await updateDoc(ref, { likes: Math.max((data.likes || 1) - 1, 0), likedBy: arrayRemove(userId) });
+  } else {
+    await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  }
+};
+
+window.editComment = async function(collectionPath, commentId, oldText) {
+  const ref = doc(db, ...collectionPath, commentId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your comment");
+  const newText = prompt("Edit comment:", oldText);
+  if (!newText || !newText.trim()) return;
+  await updateDoc(ref, { text: newText.trim() });
+};
+
+window.deleteComment = async function(collectionPath, commentId) {
+  const ref = doc(db, ...collectionPath, commentId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+  if (snap.data().ownerId !== userId && !isAdmin) return alert("Not your comment");
+  if (!confirm("Delete comment?")) return;
+  await deleteDoc(ref);
+};
+
+window.adminDeleteComment = async function(collectionPath, commentId) {
+  await deleteDoc(doc(db, ...collectionPath, commentId));
+};
+
+window.reportComment = function(collectionPath, commentId) {
+  showReportModal("Report Comment", async () => {
+    const selected = document.querySelector('input[name="report-reason"]:checked');
+    if (!selected) return alert("Please select a reason");
+    await updateDoc(doc(db, ...collectionPath, commentId), { flagged: true, flagReason: selected.value, reportedBy: arrayUnion(userId) });
+    document.getElementById("modal-overlay").classList.remove("open");
+    alert("Report submitted. Thank you.");
+  });
+};
+
+window.unflagComment = async function(collectionPath, commentId) {
+  await updateDoc(doc(db, ...collectionPath, commentId), { flagged: false, flagReason: "" });
+};
+
+// ── GENERIC COMMENT LOADER ──
+function loadCommentsGeneric(collectionPath, containerId) {
+  const q = query(collection(db, ...collectionPath), orderBy("time"));
+  onSnapshot(q, snapshot => {
+    const div = document.getElementById(containerId);
+    if (!div) return;
+    let comments = [];
+    snapshot.forEach(d => {
+      const c = d.data();
+      if (c.flagged && !isAdmin) return;
+      comments.push({ id: d.id, ...c });
+    });
+    div.innerHTML = renderComments(comments, collectionPath, containerId);
+  });
+}
+
 // ── TAB SWITCHING ──
 window.switchTab = function(tab) {
   currentTab = tab;
@@ -201,14 +293,18 @@ window.submitPost = async function() {
   if (flagged) alert("Your post has been submitted for review.");
 };
 
-window.likePost = async function(postId, title, content) {
+window.togglePostLike = async function(postId, title, content) {
   const ref = doc(db, "posts", postId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
   const data = snap.data();
-  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
-  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
-  trackInterest((title || "") + " " + (content || ""));
+  const liked = (data.likedBy || []).includes(userId);
+  if (liked) {
+    await updateDoc(ref, { likes: Math.max((data.likes || 1) - 1, 0), likedBy: arrayRemove(userId) });
+  } else {
+    await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+    trackInterest((title || "") + " " + (content || ""));
+  }
 };
 
 window.addComment = async function(postId) {
@@ -220,7 +316,10 @@ window.addComment = async function(postId) {
   if (text.length > 200) return alert("Too long");
   const check = moderateContent(text);
   if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
-  await addDoc(collection(db, "posts", postId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
+  await addDoc(collection(db, "posts", postId, "comments"), {
+    text, user: displayName, ownerId: userId, time: now,
+    flagged: !check.allowed, likes: 0, likedBy: []
+  });
   if (check.allowed) await updateDoc(doc(db, "posts", postId), { commentsCount: increment(1) });
   lastCommentTime = now;
   localStorage.setItem("lastCommentTime", now);
@@ -268,22 +367,6 @@ window.unflagPost = async function(postId) {
 window.pinPost = async function(postId, currentlyPinned) {
   await updateDoc(doc(db, "posts", postId), { pinned: !currentlyPinned });
 };
-
-// ── FYP COMMENTS LOADER ──
-function loadComments(postId) {
-  const q = query(collection(db, "posts", postId, "comments"), orderBy("time"));
-  onSnapshot(q, snapshot => {
-    const div = document.getElementById(`comments-${postId}`);
-    if (!div) return;
-    let html = "";
-    snapshot.forEach(d => {
-      const c = d.data();
-      if (c.flagged && !isAdmin) return;
-      html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
-    });
-    div.innerHTML = html;
-  });
-}
 
 // ── FYP LOAD ──
 async function loadFYP() {
@@ -341,6 +424,7 @@ async function loadFYP() {
 
     posts.forEach((post, i) => {
       const isOwner = post.ownerId === userId;
+      const liked = post.likedBy.includes(userId);
       const div = document.createElement("div");
       div.className = post.pinned ? "card pinned-card" : "card";
       div.innerHTML = `
@@ -358,7 +442,7 @@ async function loadFYP() {
         <p>${sanitize(post.content)}</p>
         <small>${sanitize(post.user)}</small>
         <div class="card-actions">
-          <button class="btn btn-ghost" onclick="window.likePost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">♡ ${post.likes}</button>
+          <button class="btn btn-ghost" onclick="window.togglePostLike('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">${liked ? "♥" : "♡"} ${post.likes}</button>
           <button class="btn btn-ghost" onclick="window.reportPost('${post.id}')">🚩</button>
           ${isOwner || isAdmin ? `
             <button class="btn btn-ghost" onclick="window.editPost('${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
@@ -375,7 +459,7 @@ async function loadFYP() {
         </div>
       `;
       feed.appendChild(div);
-      loadComments(post.id);
+      loadCommentsGeneric(["posts", post.id, "comments"], `comments-${post.id}`);
 
       if ((i + 1) % 5 === 0 && injected.length > 0) {
         const item = injected[injectIndex % injected.length];
@@ -435,21 +519,25 @@ window.submitVideo = async function() {
   if (!youtubeId) return alert("Invalid YouTube URL");
   await addDoc(collection(db, "videos"), {
     youtubeId, title, creator, status: "pending",
-    submittedBy: userId, createdAt: serverTimestamp(),
+    submittedBy: userId, ownerId: userId, createdAt: serverTimestamp(),
     likes: 0, likedBy: [], comments: 0,
-    flagged: false, flagReason: "", pinned: false, ownerId: userId
+    flagged: false, flagReason: "", pinned: false
   });
   alert("Video submitted for review!");
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-window.likeVideo = async function(videoId) {
+window.toggleVideoLike = async function(videoId) {
   const ref = doc(db, "videos", videoId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
   const data = snap.data();
-  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
-  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  const liked = (data.likedBy || []).includes(userId);
+  if (liked) {
+    await updateDoc(ref, { likes: Math.max((data.likes || 1) - 1, 0), likedBy: arrayRemove(userId) });
+  } else {
+    await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  }
 };
 
 window.addVideoComment = async function(videoId) {
@@ -461,27 +549,15 @@ window.addVideoComment = async function(videoId) {
   if (text.length > 200) return alert("Too long");
   const check = moderateContent(text);
   if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
-  await addDoc(collection(db, "videos", videoId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
+  await addDoc(collection(db, "videos", videoId, "comments"), {
+    text, user: displayName, ownerId: userId, time: now,
+    flagged: !check.allowed, likes: 0, likedBy: []
+  });
   await updateDoc(doc(db, "videos", videoId), { comments: increment(1) });
   lastCommentTime = now;
   localStorage.setItem("lastCommentTime", now);
   input.value = "";
 };
-
-function loadVideoComments(videoId) {
-  const q = query(collection(db, "videos", videoId, "comments"), orderBy("time"));
-  onSnapshot(q, snapshot => {
-    const div = document.getElementById(`vcomments-${videoId}`);
-    if (!div) return;
-    let html = "";
-    snapshot.forEach(d => {
-      const c = d.data();
-      if (c.flagged && !isAdmin) return;
-      html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
-    });
-    div.innerHTML = html;
-  });
-}
 
 window.editVideo = async function(id, oldTitle, oldCreator) {
   const ref = doc(db, "videos", id);
@@ -547,6 +623,7 @@ function loadVideos() {
     });
     videos.forEach(v => {
       const isOwner = v.ownerId === userId;
+      const liked = (v.likedBy || []).includes(userId);
       const div = document.createElement("div");
       div.className = "yt-card";
       div.innerHTML = `
@@ -571,7 +648,7 @@ function loadVideos() {
           <div class="yt-title">${sanitize(v.title)}</div>
           <div class="yt-creator">🎬 ${sanitize(v.creator)}</div>
           <div class="card-actions" style="margin-top:8px;flex-wrap:wrap;">
-            <button class="btn btn-ghost" onclick="window.likeVideo('${v.id}')">♡ ${v.likes || 0}</button>
+            <button class="btn btn-ghost" onclick="window.toggleVideoLike('${v.id}')">${liked ? "♥" : "♡"} ${v.likes || 0}</button>
             <button class="btn btn-ghost" onclick="window.reportVideo('${v.id}')">🚩</button>
             ${isOwner || isAdmin ? `
               <button class="btn btn-ghost" onclick="window.editVideo('${v.id}', \`${sanitize(v.title)}\`, \`${sanitize(v.creator)}\`)">✎ Edit</button>
@@ -589,7 +666,7 @@ function loadVideos() {
         </div>
       `;
       feed.appendChild(div);
-      loadVideoComments(v.id);
+      loadCommentsGeneric(["videos", v.id, "comments"], `vcomments-${v.id}`);
     });
   }, err => console.error("Videos error:", err));
 }
@@ -687,19 +764,23 @@ window.submitGroupPost = async function() {
   await addDoc(collection(db, "groups", currentGroupId, "posts"), {
     title, content, user: displayName, ownerId: userId,
     createdAt: serverTimestamp(), likes: 0, likedBy: [], commentsCount: 0,
-    flagged: !check.allowed
+    flagged: !check.allowed, pinned: false
   });
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-window.likeGroupPost = async function(groupId, postId) {
+window.toggleGroupPostLike = async function(groupId, postId) {
   const ref = doc(db, "groups", groupId, "posts", postId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
   const data = snap.data();
-  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
-  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
-  trackInterest((data.title || "") + " " + (data.content || ""));
+  const liked = (data.likedBy || []).includes(userId);
+  if (liked) {
+    await updateDoc(ref, { likes: Math.max((data.likes || 1) - 1, 0), likedBy: arrayRemove(userId) });
+  } else {
+    await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+    trackInterest((data.title || "") + " " + (data.content || ""));
+  }
 };
 
 window.addGroupComment = async function(groupId, postId) {
@@ -711,7 +792,10 @@ window.addGroupComment = async function(groupId, postId) {
   if (text.length > 200) return alert("Too long");
   const check = moderateContent(text);
   if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
-  await addDoc(collection(db, "groups", groupId, "posts", postId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
+  await addDoc(collection(db, "groups", groupId, "posts", postId, "comments"), {
+    text, user: displayName, ownerId: userId, time: now,
+    flagged: !check.allowed, likes: 0, likedBy: []
+  });
   await updateDoc(doc(db, "groups", groupId, "posts", postId), { commentsCount: increment(1) });
   lastCommentTime = now;
   localStorage.setItem("lastCommentTime", now);
@@ -799,6 +883,7 @@ function loadGroupPosts(groupId) {
     }
     posts.forEach(post => {
       const isOwner = post.ownerId === userId;
+      const liked = post.likedBy.includes(userId);
       const div = document.createElement("div");
       div.className = post.pinned ? "card pinned-card" : "card";
       div.innerHTML = `
@@ -816,7 +901,7 @@ function loadGroupPosts(groupId) {
         <p>${sanitize(post.content)}</p>
         <small>${sanitize(post.user)}</small>
         <div class="card-actions">
-          <button class="btn btn-ghost" onclick="window.likeGroupPost('${groupId}', '${post.id}')">♡ ${post.likes}</button>
+          <button class="btn btn-ghost" onclick="window.toggleGroupPostLike('${groupId}', '${post.id}')">${liked ? "♥" : "♡"} ${post.likes}</button>
           <button class="btn btn-ghost" onclick="window.reportGroupPost('${groupId}', '${post.id}')">🚩</button>
           ${isOwner || isAdmin ? `
             <button class="btn btn-ghost" onclick="window.editGroupPost('${groupId}', '${post.id}', \`${sanitize(post.title)}\`, \`${sanitize(post.content)}\`)">✎ Edit</button>
@@ -833,18 +918,7 @@ function loadGroupPosts(groupId) {
         </div>
       `;
       feed.appendChild(div);
-      const q = query(collection(db, "groups", groupId, "posts", post.id, "comments"), orderBy("time"));
-      onSnapshot(q, snap => {
-        const div2 = document.getElementById(`gcomments-${post.id}`);
-        if (!div2) return;
-        let html = "";
-        snap.forEach(d => {
-          const c = d.data();
-          if (c.flagged && !isAdmin) return;
-          html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
-        });
-        div2.innerHTML = html;
-      });
+      loadCommentsGeneric(["groups", groupId, "posts", post.id, "comments"], `gcomments-${post.id}`);
     });
   }, err => console.error("Group posts error:", err));
 }
@@ -864,13 +938,17 @@ window.submitContact = async function() {
   document.getElementById("modal-overlay").classList.remove("open");
 };
 
-window.likeContact = async function(contactId) {
+window.toggleContactLike = async function(contactId) {
   const ref = doc(db, "contacts", contactId);
   const snap = await getDoc(ref);
   if (!snap.exists()) return;
   const data = snap.data();
-  if ((data.likedBy || []).includes(userId)) return alert("Already liked");
-  await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  const liked = (data.likedBy || []).includes(userId);
+  if (liked) {
+    await updateDoc(ref, { likes: Math.max((data.likes || 1) - 1, 0), likedBy: arrayRemove(userId) });
+  } else {
+    await updateDoc(ref, { likes: (data.likes || 0) + 1, likedBy: arrayUnion(userId) });
+  }
 };
 
 window.addContactComment = async function(contactId) {
@@ -882,26 +960,14 @@ window.addContactComment = async function(contactId) {
   if (text.length > 200) return alert("Too long");
   const check = moderateContent(text);
   if (!check.allowed && check.autoDelete) return alert("Comment blocked: " + check.reason);
-  await addDoc(collection(db, "contacts", contactId, "comments"), { text, user: displayName, time: now, flagged: !check.allowed });
+  await addDoc(collection(db, "contacts", contactId, "comments"), {
+    text, user: displayName, ownerId: userId, time: now,
+    flagged: !check.allowed, likes: 0, likedBy: []
+  });
   lastCommentTime = now;
   localStorage.setItem("lastCommentTime", now);
   input.value = "";
 };
-
-function loadContactComments(contactId) {
-  const q = query(collection(db, "contacts", contactId, "comments"), orderBy("time"));
-  onSnapshot(q, snapshot => {
-    const div = document.getElementById(`ccomments-${contactId}`);
-    if (!div) return;
-    let html = "";
-    snapshot.forEach(d => {
-      const c = d.data();
-      if (c.flagged && !isAdmin) return;
-      html += `<p class="comment-item"><b>${sanitize(c.user)}:</b> ${sanitize(c.text)}</p>`;
-    });
-    div.innerHTML = html;
-  });
-}
 
 window.editContact = async function(id, oldName, oldNote) {
   const ref = doc(db, "contacts", id);
@@ -966,6 +1032,7 @@ function loadContacts() {
     });
     contacts.forEach(c => {
       const isOwner = c.ownerId === userId;
+      const liked = (c.likedBy || []).includes(userId);
       const div = document.createElement("div");
       div.className = c.pinned ? "contact-card pinned-card" : "contact-card";
       div.innerHTML = `
@@ -984,7 +1051,7 @@ function loadContacts() {
         <div class="contact-btns">
           ${c.number ? `<a href="tel:${sanitize(c.number)}" class="btn btn-call">📞 ${sanitize(c.number)}</a>` : ""}
           ${c.textNumber ? `<a href="sms:${sanitize(c.textNumber)}" class="btn btn-primary">💬 ${sanitize(c.textNumber)}</a>` : ""}
-          <button class="btn btn-ghost" onclick="window.likeContact('${c.id}')">♡ ${c.likes || 0}</button>
+          <button class="btn btn-ghost" onclick="window.toggleContactLike('${c.id}')">${liked ? "♥" : "♡"} ${c.likes || 0}</button>
           <button class="btn btn-ghost" onclick="window.reportContact('${c.id}')">🚩</button>
           ${isOwner || isAdmin ? `
             <button class="btn btn-ghost" onclick="window.editContact('${c.id}', \`${sanitize(c.name)}\`, \`${sanitize(c.note || '')}\`)">✎ Edit</button>
@@ -1001,7 +1068,7 @@ function loadContacts() {
         </div>
       `;
       feed.appendChild(div);
-      loadContactComments(c.id);
+      loadCommentsGeneric(["contacts", c.id, "comments"], `ccomments-${c.id}`);
     });
   }, err => console.error("Contacts error:", err));
 }
