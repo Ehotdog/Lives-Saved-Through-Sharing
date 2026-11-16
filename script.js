@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { initializeAppCheck, ReCaptchaV3Provider, getToken } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-check.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import {
   getFirestore, collection, doc, addDoc, getDoc, updateDoc,
   deleteDoc, onSnapshot, query, orderBy, increment, arrayUnion, arrayRemove,
@@ -21,15 +22,15 @@ const appCheck = initializeAppCheck(app, {
   isTokenAutoRefreshEnabled: true
 });
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-let userId = localStorage.getItem("userId");
-if (!userId) { userId = crypto.randomUUID(); localStorage.setItem("userId", userId); }
+// ── IDENTITY (set after anonymous sign-in) ──
+let userId = null;
+let isAdmin = false;
+const ADMIN_UID = "PASTE_YOUR_UID_HERE"; // copy from the console after first load
 
 let displayName = localStorage.getItem("displayName");
 if (!displayName) { displayName = "User" + Math.floor(Math.random() * 9999); localStorage.setItem("displayName", displayName); }
-
-const ADMIN_ID = "user_eb4fvj3kpy5";
-const isAdmin = userId === ADMIN_ID;
 
 let lastPostTime = parseInt(localStorage.getItem("lastPostTime")) || 0;
 let lastCommentTime = parseInt(localStorage.getItem("lastCommentTime")) || 0;
@@ -126,7 +127,6 @@ function renderCommentItem(c, collectionPath, postOwnerId) {
   const actions = document.createElement("div");
   actions.style.cssText = "display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;";
 
-  // Like/Unlike
   const likeBtn = document.createElement("button");
   likeBtn.className = "btn btn-ghost";
   likeBtn.style.cssText = "font-size:11px;padding:2px 8px;";
@@ -145,7 +145,6 @@ function renderCommentItem(c, collectionPath, postOwnerId) {
   };
   actions.appendChild(likeBtn);
 
-  // Report
   const reportBtn = document.createElement("button");
   reportBtn.className = "btn btn-ghost";
   reportBtn.style.cssText = "font-size:11px;padding:2px 8px;";
@@ -161,7 +160,6 @@ function renderCommentItem(c, collectionPath, postOwnerId) {
   };
   actions.appendChild(reportBtn);
 
-  // Edit & Delete (comment owner or admin)
   if (isCommentOwner || isAdmin) {
     const editBtn = document.createElement("button");
     editBtn.className = "btn btn-ghost";
@@ -187,7 +185,6 @@ function renderCommentItem(c, collectionPath, postOwnerId) {
     actions.appendChild(deleteBtn);
   }
 
-  // Pin (post owner or admin)
   if (isPostOwner || isAdmin) {
     const pinBtn = document.createElement("button");
     pinBtn.className = `btn ${c.pinned ? "btn-pinned" : "btn-pin"}`;
@@ -199,7 +196,6 @@ function renderCommentItem(c, collectionPath, postOwnerId) {
     actions.appendChild(pinBtn);
   }
 
-  // Admin flagged controls
   if (isAdmin && c.flagged) {
     const removeBtn = document.createElement("button");
     removeBtn.className = "btn btn-danger";
@@ -233,7 +229,6 @@ function loadCommentsGeneric(collectionPath, containerId, postOwnerId) {
       if (c.flagged && !isAdmin) return;
       comments.push({ id: d.id, ...c });
     });
-    // Pinned comments first
     comments.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
     comments.forEach(c => div.appendChild(renderCommentItem(c, collectionPath, postOwnerId)));
   });
@@ -798,7 +793,6 @@ function loadGroups() {
 window.submitGroupPost = async function() {
   const title = document.getElementById("modal-gpost-title").value.trim();
   const content = document.getElementById("modal-gpost-content").value.trim();
-  const now = Date.now();
   if (!title || !content) return alert("Fill in all fields");
   if (title.length > 80) return alert("Title too long");
   if (content.length > 500) return alert("Too long");
@@ -1117,8 +1111,19 @@ function loadContacts() {
 }
 
 // ── BOOT ──
-getToken(appCheck, false).then(() => {
-  console.log("App Check ready");
+function waitForAuth() {
+  return new Promise((resolve, reject) => {
+    const unsub = onAuthStateChanged(auth, user => {
+      if (user) { unsub(); resolve(user); }
+    });
+    signInAnonymously(auth).catch(reject);
+  });
+}
+
+Promise.all([waitForAuth(), getToken(appCheck, false)]).then(([user]) => {
+  userId = user.uid;
+  isAdmin = userId === ADMIN_UID;
+  console.log("App Check ready. Your UID:", userId, "| admin:", isAdmin);
   const msg = document.getElementById("loading-msg");
   if (msg) msg.remove();
   loadFYP();
@@ -1126,7 +1131,7 @@ getToken(appCheck, false).then(() => {
   loadGroups();
   loadContacts();
 }).catch(err => {
-  console.error("App Check failed:", err);
+  console.error("Startup failed:", err);
   const msg = document.getElementById("loading-msg");
   if (msg) msg.textContent = "Security check failed. Please refresh.";
 });
